@@ -23,3 +23,4 @@ def init_db():
     # you will have to import them first before calling init_db()
     from .models import User
     Base.metadata.create_all(bind=engine)
+    
