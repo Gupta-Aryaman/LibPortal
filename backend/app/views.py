@@ -76,7 +76,318 @@ def login_user():
 # see all returned books
 # see all books in a section
 
-@main.route('/protected', methods = ["GET"])
+@main.route('/list_books', methods = ["GET"])
 @token_required
-def protected(current_user):
-    return make_response({'message': 'This is only available for people with valid tokens'}, 200)
+def list_books(current_user):
+    '''
+    List all books or search a book by title
+    '''
+    try:
+        if request.args.get("title"):
+            title = request.args["title"]
+            books = db_session.query(Books).filter(Books.title.like(title + "%")).all()
+            return make_response({"Books": [book.serialize for book in books]}, 200)
+
+        else:
+            books = db_session.query(Books).all()
+            return make_response({"Books": [book.serialize for book in books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/borrow_book', methods = ["POST"])
+@token_required
+def borrow_book(current_user):
+    '''
+    Borrow a book
+    '''
+    try:
+        book_id = request.json['book_id']
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+
+        if book.available_copies == 0:
+            return make_response({"Status": "Book not available"}, 403)
+
+        # book.available_copies -= 1
+
+        b = BorrowedBooks(current_user.id, book_id)
+        db_session.add(b)
+        db_session.commit()
+
+        return make_response({"Status": "Book borrowed successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/return_book', methods = ["POST"])
+@token_required
+def return_book(current_user):
+    '''
+    Return a book
+    '''
+    try:
+        book_id = request.json['book_id']
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id and BorrowedBooks.user_id == current_user.id).first()
+
+        if not borrowed_book:
+            return make_response({"Status": "Book not borrowed by you"}, 403)
+
+        borrowed_book.is_returned = True
+        borrowed_book.actual_return_date = datetime.date.today()
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+        book.available_copies += 1
+
+        db_session.commit()
+
+        return make_response({"Status": "Book returned successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_borrowed_books', methods = ["GET"])
+@token_required
+def list_borrowed_books(current_user):
+    '''
+    List all borrowed books
+    '''
+    try:
+        borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id and BorrowedBooks.is_returned == False).all()
+        return make_response({"Borrowed Books": [book.serialize for book in borrowed_books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_returned_books', methods = ["GET"])
+@token_required
+def list_returned_books(current_user):
+    '''
+    List all returned books
+    '''
+    try:
+        returned_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id and BorrowedBooks.is_returned == True).all()
+        return make_response({"Returned Books": [book.serialize for book in returned_books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_books_in_section', methods = ["GET"])
+@token_required
+def list_books_in_section(current_user):
+    '''
+    List all books in a section
+    '''
+    try:
+        section = request.args['section']
+        books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Sections.section == section).all()
+        return make_response({"Books in section": [book.serialize for book in books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/add_feedback', methods = ["POST"])
+@token_required
+def add_feedback(current_user):
+    '''
+    Feedback endpoint for a student (user)
+    '''
+    try:
+        feedback = request.json['feedback']
+        book_id = request.json['book_id']
+        f = Feedback(current_user.id, book_id, feedback)
+        db_session.add(f)
+        db_session.commit()
+
+        return make_response({"Status": "Feedback added successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_feedback', methods = ["GET"])
+@token_required
+def list_feedback(current_user):
+    '''
+    List all feedback
+    '''
+    try:
+        book_id = request.args.get['book_id']
+        feedback = db_session.query(Feedback).filter(Feedback.book_id == book_id).all()
+        return make_response({"Feedback": [fb.serialize for fb in feedback]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+# LIBRARIAN ENDPOINTS
+
+@main.route('/add_section', methods = ["POST"])
+@token_required
+def add_section(current_user):
+    '''
+    Add a section
+    '''
+    try:
+        section = request.json['section']
+        description = request.json['description']
+        s = Sections(section, description)
+        db_session.add(s)
+        db_session.commit()
+
+        return make_response({"Status": "Section added successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/add_book', methods = ["POST"])
+@token_required
+def add_book(current_user):
+    '''
+    Add a book
+    '''
+    try:
+        title = request.json['title']
+        author = request.json['author']
+        section = request.json['section']
+        description = request.json['description']
+        available_copies = request.json['available_copies']
+        try:
+            image = request.json['image']
+        except:
+            image = None
+        # content = request.json['content']
+
+        book = Books(title, author, section, description, available_copies, image)
+        db_session.add(book)
+        db_session.commit()
+
+        return make_response({"Status": "Book added successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_sections', methods = ["GET"])
+@token_required
+def list_sections(current_user):
+    '''
+    List all sections
+    '''
+    try:
+        sections = db_session.query(Sections).all()
+        return make_response({"Sections": [section.serialize for section in sections]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_books_in_section', methods = ["GET"])
+@token_required
+def list_books_in_section(current_user):
+    '''
+    List all books in a section
+    '''
+    try:
+        section = request.args['section']
+        books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Sections.section == section).all()
+        return make_response({"Books in section": [book.serialize for book in books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_borrowed_books', methods = ["GET"])
+@token_required
+def list_borrowed_books(current_user):
+    '''
+    List all borrowed books
+    '''
+    try:
+        borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.is_returned == False and BorrowedBooks.is_approved == True).all()
+        return make_response({"Borrowed Books": [book.serialize for book in borrowed_books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/list_pending_approval_books', methods = ["GET"])
+@token_required
+def list_pending_approval_books(current_user):
+    '''
+    List all books pending approval
+    '''
+    try:
+        pending_approval_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.is_approved == False).all()
+        return make_response({"Pending Approval Books": [book.serialize for book in pending_approval_books]}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/approve_book_borrow', methods = ["POST"])
+@token_required
+def approve_book_borrow(current_user):
+    '''
+    Approve a book borrow
+    '''
+    try:
+        book_id = request.json['book_id']
+        user_id = request.json['user_id']
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+        
+        if book.available_copies == 0:
+            return make_response({"Status": "Book not available"}, 403)
+        else:
+            book.available_copies -= 1
+
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id and BorrowedBooks.user_id == user_id and BorrowedBooks.is_approved == False and BorrowedBooks.is_rejected == False).first()
+
+        borrowed_book.is_approved = True
+        borrowed_book.borrow_date = datetime.date.today()
+        borrowed_book.scheduled_return_date = datetime.date.today() + datetime.timedelta(days=7)
+
+        db_session.commit()
+
+        return make_response({"Status": "Book borrow approved successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/reject_book_borrow', methods = ["POST"])
+@token_required
+def reject_book_borrow(current_user):
+    '''
+    Reject a book borrow
+    '''
+    try:
+        book_id = request.json['book_id']
+        user_id = request.json['user_id']
+
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id and BorrowedBooks.user_id == user_id and BorrowedBooks.is_approved == False and BorrowedBooks.is_rejected == False).first()
+
+        borrowed_book.is_rejected = True
+
+        db_session.commit()
+
+        return make_response({"Status": "Book borrow rejected successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+    
+
+@main.route('/revoke_borrowed_book', methods = ["POST"])
+@token_required
+def revoke_borrowed_book(current_user):
+    '''
+    Revoke a borrowed book
+    '''
+    try:
+        book_id = request.json['book_id']
+        user_id = request.json['user_id']
+
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id and BorrowedBooks.user_id == user_id and BorrowedBooks.is_approved == True and BorrowedBooks.is_rejected == False).first()
+
+        borrowed_book.is_approved = False
+        borrowed_book.is_revoked = True
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+        book.available_copies += 1
+
+        db_session.commit()
+
+        return make_response({"Status": "Book borrow revoked successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)

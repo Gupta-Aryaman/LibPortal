@@ -51,8 +51,8 @@ class Books(Base):
     section = Column(Integer, ForeignKey('sections.id'))
     description = Column(String(200))
     available_copies = Column(Integer)
-    image = Column(String(200))
-    content = Column(String(200))
+    image = Column(String(200), nullable=True)
+    # content = Column(String(200))
 
     def __init__(self, title=None, author=None, section=None, description=None, available_copies=None):
         self.title = title
@@ -64,6 +64,18 @@ class Books(Base):
     def __repr__(self):
         return f"Book(title='{self.title}', author={self.author}, section={self.section}, description={self.description}, available_copies={self.available_copies})"
     
+    def serialize(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'author': self.author,
+            'section': self.section,
+            'description': self.description,
+            'available_copies': self.available_copies,
+            'image': self.image,
+            # 'content': self.content
+        }
+    
     
 class BorrowedBooks(Base):
     __tablename__ = 'borrowed_books'
@@ -71,16 +83,33 @@ class BorrowedBooks(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     book_id = Column(Integer, ForeignKey('books.id'))
     borrow_date = Column(Date, default = datetime.date.today())
-    return_date = Column(Date, default = datetime.date.today() + datetime.timedelta(days=7))
+    scheduled_return_date = Column(Date, default = datetime.date.today() + datetime.timedelta(days=7))
     actual_return_date = Column(Date, nullable=True)
     is_returned = Column(Boolean, default = False)
+    is_approved = Column(Boolean, default = False)
+    is_rejected = Column(Boolean, default = False)
+    is_revoked = Column(Boolean, default = False)
 
     def __init__(self, user_id=None, book_id=None):
         self.user_id = user_id
         self.book_id = book_id
 
     def __repr__(self):
-        return f"BorrowedBook(user_id='{self.user_id}', book_id={self.book_id}, borrow_date={self.borrow_date}, return_date={self.return_date}, actual_return_date={self.actual_return_date}, is_returned={self.is_returned})"
+        return f"BorrowedBook(user_id='{self.user_id}', book_id={self.book_id}, borrow_date={self.borrow_date}, scheduled_return_date={self.scheduled_return_date}, actual_return_date={self.actual_return_date}, is_returned={self.is_returned}, is_approved={self.is_approved}, is_rejected={self.is_rejected}, is_revoked={self.is_revoked})"
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'book_id': self.book_id,
+            'borrow_date': self.borrow_date,
+            'scheduled_return_date': self.scheduled_return_date,
+            'actual_return_date': self.actual_return_date,
+            'is_returned': self.is_returned,
+            'is_approved': self.is_approved,
+            'is_rejected': self.is_rejected,
+            'is_revoked': self.is_revoked
+        }
 
 
 class Feedback(Base):
@@ -90,8 +119,9 @@ class Feedback(Base):
     book_id = Column(Integer, ForeignKey('books.id'))
     feedback = Column(String(200))
 
-    def __init__(self, user_id=None, feedback=None):
+    def __init__(self, user_id=None, book_id=None, feedback=None):
         self.user_id = user_id
+        self.book_id = book_id
         self.feedback = feedback
 
     def __repr__(self):
