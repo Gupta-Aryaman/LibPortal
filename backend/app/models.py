@@ -29,6 +29,29 @@ class User(Base):
         return self.password == hashlib.sha256(password.encode()).hexdigest()
 
 
+class Librarian(Base):
+    __tablename__ = 'librarians'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(50))
+    password = Column(String(128))
+
+    def __init__(self, username=None, password=None):
+        self.username = username
+        if password:
+            self.set_password(password)
+
+    def __repr__(self):
+        return f"Librarian(name='{self.username}')"
+    
+    def set_password(self, password):
+        """Hashes the password and sets the password_hash attribute."""
+        self.password = hashlib.sha256(password.encode()).hexdigest()
+
+    def check_password(self, password):
+        """Checks if the provided password matches the stored hashed password."""
+        return self.password == hashlib.sha256(password.encode()).hexdigest()
+
+
 class Sections(Base):
     __tablename__ = 'sections'
     id = Column(Integer, primary_key=True)
@@ -41,6 +64,13 @@ class Sections(Base):
 
     def __repr__(self):
         return f"Section(section='{self.section}', description={self.description})"
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'section': self.section,
+            'description': self.description
+        }
     
 
 class Books(Base):
