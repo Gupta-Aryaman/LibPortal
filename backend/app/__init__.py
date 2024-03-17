@@ -1,8 +1,10 @@
 from flask import Flask, Blueprint
+from flask_cors import CORS
 
 from .extensions import init_db, db_session
 from .models import Librarian
 from .views import main
+
 
 def create_app(config_file='settings.py'):
     app = Flask(__name__)
@@ -15,6 +17,8 @@ def create_app(config_file='settings.py'):
     librarian = Librarian(username='librarian', password='password')
     db_session.add(librarian)
     db_session.commit()
+
+    CORS(app)
 
     app.register_blueprint(main)
 

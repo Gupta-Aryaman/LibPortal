@@ -1,19 +1,19 @@
 <script setup>
-import SignupForm from './components/SignupForm.vue'
+
 </script>
 
 <template>
-  <main>
-    <SignupPage />
-  </main>
+    <main>
+      <router-view></router-view>
+    </main>
 </template>
 
 <script>
-import SignupPage from './components/SignupPage.vue'
+
 export default {
   name: 'App',
   components: {
-    SignupPage
+    
   }
 }
 </script>

@@ -8,6 +8,7 @@ flask-sqlalchemy = "*"
 python-dotenv = "*"
 requests = "*"
 pyjwt = "*"
+flask-cors = "*"
 
 [dev-packages]
 
