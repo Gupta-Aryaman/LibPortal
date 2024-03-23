@@ -1,0 +1,144 @@
+<template>
+    <UserHeader :queryString="queryString"/>
+
+    <div class="container pt-5">
+        <div class="row"  v-if="books.length">
+            <div class="col-md-3 mb-3" v-for="book in books" :key="book.id">
+                <BookCard :title="book.title" :author="book.author" :section="book.section" :description="book.description" :copies="book.available_copies" :isBorrowed="book.is_borrowed" :bookId="book.id" @logout="logout" @borrowed="borrowed"/>
+            </div>
+        </div>
+        <div class="d-flex justify-content-center align-items-center" v-else>
+            <h2>No books found!</h2>
+        </div>
+    </div>
+
+    
+    
+    
+    
+</template>
+
+<script>
+    import UserHeader from './UserHeader.vue';
+    import BookCard from './BookCard.vue';
+    import { useRoute } from 'vue-router'
+
+    export default {
+        name : 'UserDashboard',
+        components: {
+            UserHeader,
+            BookCard
+        },
+        mounted() {
+            if (localStorage.getItem('user_token') && localStorage.getItem('user')) {
+                this.isUserLoggedIn = true;
+                this.username = localStorage.getItem('user');
+            } else{
+                this.logout();
+            }
+        },
+        data() {
+            return {
+                books: [],
+                queryString: '',
+                isSection: false,
+                isTitle: false,
+            };
+        },
+        created() {
+            // Check if parameter exists
+            if (this.$route.query.section !== undefined) {
+                this.isSection = true;
+                this.queryString = this.$route.query.section;
+            } else if(this.$route.query.title !== undefined) {
+                this.isTitle = true;
+                this.queryString = this.$route.query.title;
+            }
+
+            this.fetchBooks();
+        },
+        methods: {
+            async fetchBooks() {
+                const myHeaders = new Headers();
+                myHeaders.append("Authorization", "Bearer " + localStorage.getItem('user_token'));
+
+                const requestOptions = {
+                    method: "GET",
+                    headers: myHeaders,
+                    redirect: "follow"
+                };
+
+                console.log(this.queryString);
+                
+                if(this.isSection){
+                    fetch("http://localhost:5000/list_books?section="+this.queryString, requestOptions)
+                    .then((response) => {
+                        if (response.status === 200) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            window.alert("Session expired. Please login again.");
+                            this.logout();
+                        } else {
+                            window.alert("An error occurred. Please try again later.");
+                        }
+                    })
+                    .then((result) => {
+                        result = result.Books;
+                        this.books = result;
+                        console.log(this.books);
+                    })
+                    .catch((error) => console.error(error));
+
+                } else if(this.isTitle){
+                    fetch("http://localhost:5000/list_books?title="+this.queryString, requestOptions)
+                    .then((response) => {
+                        if (response.status === 200) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            window.alert("Session expired. Please login again.");
+                            this.logout();
+                        } else {
+                            window.alert("An error occurred. Please try again later.");
+                        }
+                    })
+                    .then((result) => {
+                        result = result.Books;
+                        this.books = result;
+                        console.log(this.books);
+                    })
+                    .catch((error) => console.error(error));
+                } else{
+                    fetch("http://localhost:5000/list_books", requestOptions)
+                    .then((response) => {
+                        if (response.status === 200) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            window.alert("Session expired. Please login again.");
+                            this.logout();
+                        } else {
+                            window.alert("An error occurred. Please try again later.");
+                        }
+                    })
+                    .then((result) => {
+                        result = result.Books;
+                        this.books = result;
+                        console.log(this.books);
+                    })
+                    .catch((error) => console.error(error));
+                }
+
+                
+            },
+            borrowed(){
+                window.alert('Book borrowed successfully');
+                this.fetchBooks();
+            },
+            logout() {
+                localStorage.removeItem('user_token');
+                this.isUserLoggedIn = false;
+                window.location.href = '/login';
+            },
+        }
+    }
+
+</script>

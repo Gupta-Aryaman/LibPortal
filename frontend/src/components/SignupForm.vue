@@ -1,11 +1,9 @@
 <template>
-  <!-- Registration 3 - Bootstrap Brain Component -->
-  <section class="p-3 p-md-4 p-xl-5">
+  <section class="p-3 p-md-4 p-xl-5 vh-100 d-flex justify-content-center align-items-center">
     <div class="container">
       <div class="row">
         <div class="col-12 col-md-6 bsb-tpl-bg-platinum">
           <div class="d-flex flex-column justify-content-between h-100 p-3 p-md-4 p-xl-5">
-            <!-- <h3 class="m-0">Welcome!</h3> -->
             <img class="img-fluid rounded mx-auto my-4" loading="lazy" src="../assets/lib.jpg" width="450" height="800" alt="BootstrapBrain Logo">
 
           </div>
@@ -65,7 +63,7 @@
             <div class="row">
               <div class="col-12">
                 <hr class="mt-5 mb-4 border-secondary-subtle">
-                <p class="m-0 text-secondary text-end">Already have an account? <a href="#!" class="link-primary text-decoration-none">Sign in</a></p>
+                <p class="m-0 text-secondary text-end">Already have an account? <a href="/login" class="link-primary text-decoration-none">Log in</a></p>
               </div>
             </div>
             
@@ -129,7 +127,7 @@
             window.alert('Successful registration!');
             setTimeout(() => {
               window.location.href = '/login';
-            }, 1000);
+            }, 500);
 
           } else if (response.status === 403) {
             window.alert('User already exists');

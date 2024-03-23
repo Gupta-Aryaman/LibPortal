@@ -6,6 +6,7 @@ import datetime
 from dotenv import load_dotenv
 import os
 from .helpers import user_token_required, librarian_token_required
+from random import shuffle
 
 load_dotenv()
 
@@ -59,7 +60,7 @@ def login_user():
             fetch_user = fetch_user[0]
             token = jwt.encode({'username': fetch_user.username, 'email': fetch_user.email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
 
-            return make_response({"Status": "User login successful", "token": token}, 200)
+            return make_response({"Status": "User login successful", "token": token, "user": fetch_user.username}, 200)
         
         except Exception as e:
             return make_response({'Error: ': str(e)}, 500)
@@ -88,22 +89,34 @@ def list_books(current_user):
 
             if request.args.get("section"):
                 section = request.args.get("section")
-                books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%"), Sections.section.ilike(section)).all()
+                books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%"), Sections.section.ilike(section)).all()
             else:
-                books = db_session.query(Books).filter(Books.title.like("%" + title + "%")).all()
+                books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%")).all()
 
-            return make_response({"Books": [book.serialize() for book in books]}, 200)
+            # return make_response({"Books": [book.serialize() for book in books]}, 200)
         
         elif request.args.get("section"):
             section = request.args.get("section")
-            books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Sections.section.ilike(section)).all()
-            return make_response({"Books": [book.serialize() for book in books]}, 200)
+            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Sections.section.like("%"+section+"%")).all()
+            # return make_response({"Books": [book.serialize() for book in books]}, 200)
 
         else:
-            books = db_session.query(Books).all()
-            return make_response({"Books": [book.serialize for book in books]}, 200)
+            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).all()
+        
+        borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False, BorrowedBooks.is_rejected == False).all()
+        borrowed_books = [book.book_id for book in borrowed_books]
+
+        res = []
+        for book, section in books:
+            if book.id in borrowed_books:
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": True})
+            else:
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": False})
+        # shuffle(res)
+        return make_response({"Books": res}, 200)
         
     except Exception as e:
+        print(str(e))
         return make_response({"Status": str(e)}, 500)
 
 

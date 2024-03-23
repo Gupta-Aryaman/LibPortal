@@ -14,9 +14,10 @@ def create_app(config_file='settings.py'):
     init_db()
 
     # Create a librarian user
-    librarian = Librarian(username='librarian', password='password')
-    db_session.add(librarian)
-    db_session.commit()
+    if not Librarian.query.filter_by(username='librarian').first():
+        librarian = Librarian(username='librarian', password='password')
+        db_session.add(librarian)
+        db_session.commit()
 
     CORS(app)
 
