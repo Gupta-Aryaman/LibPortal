@@ -3,7 +3,8 @@ import SignupForm from './components/SignupForm.vue';
 import UserLoginPage from './components/UserLoginPage.vue';
 import LibrarianLoginPage from './components/LibrarianLoginPage.vue';
 import UserDashboard from './components/UserDashboard.vue';
-
+import UserMyBooks from './components/UserMyBooks.vue';
+import LibrarianDashboard from './components/LibrarianDashboard.vue';
 
 const routes = [
     {
@@ -11,8 +12,8 @@ const routes = [
         redirect: '/signup',
     },
     {
-        path: '/signup', // Define the URL where your component will be shown
-        component: SignupForm, // Specify the component to render
+        path: '/signup',
+        component: SignupForm,
     },
     {
         path: '/login',
@@ -25,6 +26,14 @@ const routes = [
     {
         path: '/dashboard',
         component: UserDashboard,
+    },
+    {
+        path: '/mybooks',
+        component: UserMyBooks,
+    },
+    {
+        path: '/librarian/dashboard',
+        component: LibrarianDashboard,
     }
 ];
 

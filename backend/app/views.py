@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 from .helpers import user_token_required, librarian_token_required
 from random import shuffle
+from sqlalchemy import or_
 
 load_dotenv()
 
@@ -142,7 +143,28 @@ def borrow_book(current_user):
         return make_response({"Status": "Book borrowed successfully"}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
-    
+
+
+@main.route('/cancel_borrow_request', methods = ["DELETE"])
+@user_token_required
+def cancel_borrow_request(current_user):
+    '''
+    Cancel a borrow request
+    '''
+    try:
+        req_id = request.json['req_id']
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.id == req_id, BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_approved == False, BorrowedBooks.is_rejected == False).first()
+
+        if not borrowed_book:
+            return make_response({"Status": "Book not borrowed by you"}, 403)
+
+        db_session.delete(borrowed_book)
+        db_session.commit()
+
+        return make_response({"Status": "Borrow request cancelled successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
 
 @main.route('/return_book', methods = ["POST"])
 @user_token_required
@@ -151,8 +173,8 @@ def return_book(current_user):
     Return a book
     '''
     try:
-        book_id = request.json['book_id']
-        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id, BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == False, BorrowedBooks.is_approved == True, BorrowedBooks.is_revoked == False).first()
+        req_id = request.json['req_id']
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.id == req_id, BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == False, BorrowedBooks.is_approved == True, BorrowedBooks.is_revoked == False).first()
 
         if not borrowed_book:
             return make_response({"Status": "Book not borrowed by you"}, 403)
@@ -160,15 +182,40 @@ def return_book(current_user):
         borrowed_book.is_returned = True
         borrowed_book.actual_return_date = datetime.date.today()
 
-        book = db_session.query(Books).filter(Books.id == book_id).first()
+        book = db_session.query(Books).filter(Books.id == borrowed_book.book_id).first()
         book.available_copies += 1
 
         db_session.commit()
 
         return make_response({"Status": "Book returned successfully"}, 200)
     except Exception as e:
+        print(str(e))
         return make_response({"Status": str(e)}, 500)
-    
+
+
+@main.route('/list_approval_pending_books', methods = ["GET"])
+@user_token_required
+def list_approval_pending_books(current_user):
+    '''
+    List all books pending approval
+    '''
+    try:
+        pending_approval_books = db_session.query(BorrowedBooks, Books, Sections).\
+            join(Books, BorrowedBooks.book_id == Books.id).\
+            join(Sections, Books.section == Sections.id).\
+            filter(
+                BorrowedBooks.user_id == current_user.id,
+                BorrowedBooks.is_approved == False,
+                BorrowedBooks.is_rejected == False
+            ).all()
+
+        res = []
+        for book, book_details, section in pending_approval_books:
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section})
+        return make_response({"Books": res}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
 
 @main.route('/list_borrowed_books', methods = ["GET"])
 @user_token_required
@@ -176,11 +223,22 @@ def list_borrowed_books(current_user):
     '''
     List all borrowed books
     '''
-    try:
-        borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == False, BorrowedBooks.is_approved == True, BorrowedBooks.is_revoked == False).all()
-        print(borrowed_books)
+    try:      
+        borrowed_books = db_session.query(BorrowedBooks, Books, Sections).\
+            join(Books, BorrowedBooks.book_id == Books.id).\
+            join(Sections, Books.section == Sections.id).\
+            filter(
+                BorrowedBooks.user_id == current_user.id,
+                BorrowedBooks.is_approved == True,
+                BorrowedBooks.is_revoked == False,
+                BorrowedBooks.is_returned == False
+            ).all()
 
-        return make_response({"Borrowed Books": [book.serialize() for book in borrowed_books]}, 200)
+        res = []
+        for book, book_details, section in borrowed_books:
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section})
+
+        return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
     
@@ -192,8 +250,17 @@ def list_returned_books(current_user):
     List all returned books
     '''
     try:
-        returned_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == True).all()
-        return make_response({"Returned Books": [book.serialize() for book in returned_books]}, 200)
+        returned_books = db_session.query(BorrowedBooks, Books, Sections).\
+            join(Books, BorrowedBooks.book_id == Books.id).\
+            join(Sections, Books.section == Sections.id).\
+            filter(
+                BorrowedBooks.user_id == current_user.id,
+                or_(BorrowedBooks.is_returned == True, BorrowedBooks.is_revoked == True)
+            ).all()
+        res = []
+        for book, book_details, section in returned_books:
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section})
+        return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
 
@@ -255,7 +322,7 @@ def login_librarian():
             fetch_librarian = fetch_librarian[0]
             token = jwt.encode({'username': fetch_librarian.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
 
-            return make_response({"Status": "Librarian login successful", "token": token}, 200)
+            return make_response({"Status": "Librarian login successful", "token": token, "username": fetch_librarian.username}, 200)
         
         except Exception as e:
             return make_response({'Error: ': str(e)}, 500)

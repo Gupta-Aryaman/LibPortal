@@ -1,5 +1,7 @@
 <template>
     <div class="card" style="width: 18rem;">
+        <img v-if="picturePath" :src="picturePath" class="card-img-top" alt="...">
+        <img v-else src="https://via.placeholder.com/150" class="card-img-top" alt="...">
         <div class="card-body p-3">
             <h5 class="card-title">{{ title }}</h5>
             <h6 class="card-subtitle mb-2 text-body-secondary">{{ author }} - {{ section }}</h6>
@@ -25,7 +27,8 @@
             description: String,
             copies: Number, 
             isBorrowed: Boolean,
-            bookId: Number
+            bookId: Number,
+            picturePath: String
         },
         data() {
             return {
@@ -87,4 +90,5 @@
     .description {
         text-align: left;
     }
+
 </style>

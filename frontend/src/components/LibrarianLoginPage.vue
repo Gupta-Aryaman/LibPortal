@@ -42,10 +42,11 @@ export default {
             .then((data) => {
                 if (data) {
                     localStorage.setItem('user_token', data.token);
+                    localStorage.setItem('user', data.username);
 
-                    window.alert('Successful Login!');
+                    // window.alert('Successful Login!');
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        window.location.href = '/librarian/dashboard';
                     }, 500);
                 }
             })
