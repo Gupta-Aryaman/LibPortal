@@ -1,9 +1,10 @@
 <template>
     <div class="card" style="width: 18rem;">
         <div class="card-body p-3">
-            <h5 class="card-title">{{ title }}</h5>
+            <h1 class="card-title text-center"><b>{{ title }}</b></h1>
+            <h6 class="card-subtitle mb-2 text-body-secondary text-center">Created On: {{ date }}</h6>
             <button v-if="description.length > 30" class="btn " @click="toggleOverflow">
-                <p class="card-text description" :class="{ 'overflow-hidden': !showOverflow }"><i>{{ description }}</i></p>
+                <p class="card-text description text-center" :class="{ 'overflow-hidden': !showOverflow }"><i>{{ description }}</i></p>
             </button>
             <div class="text">
                 <!-- <a class="card-text"><b>Copies <br>Available: {{ copies }}</b></a> -->
@@ -20,7 +21,8 @@
         name: 'BookCard',
         props: {
             title: String,
-            description: String
+            description: String,
+            date: String
         },
         data() {
             return {
@@ -32,10 +34,10 @@
                 this.showOverflow = !this.showOverflow;
             },
             addBookHandler() {
-                // window.location.href = '/librarian/add-book'
+                window.location.href = '/librarian/add_book?section=' + this.title
             },
             viewBookHandler() {
-                // window.location.href = '/librarian/view-books'
+                window.location.href = '/librarian/view_books?section=' + this.title
             }
         }
     };

@@ -1,10 +1,10 @@
 <template>
-    <LibrarianHeader />
+    <LibrarianHeader @search_section="search_section"/>
 
     <div class="container pt-5">
         <div class="row"  v-if="sections.length">
             <div class="col-md-3 mb-3" v-for="section in sections" :key="section.id">
-                <LibrarianSectionCard :title="section.section" :description="section.description"/>
+                <LibrarianSectionCard :title="section.section" :description="section.description" :date="this.convert_date(section.date_created)"/>
             </div>
         </div>
         <div class="d-flex justify-content-center align-items-center" v-else>
@@ -37,6 +37,7 @@ export default{
             username: '',
             sections: [],
             queryString: '',
+            original_sections: [],
         };
     },
     created(){
@@ -48,13 +49,19 @@ export default{
         this.fetchSections();
     },
     methods: {
+        convert_date(dateString){
+            const date = new Date(dateString);
+            const formattedDate = date.toLocaleDateString();
+            return formattedDate
+
+        },
         logout(){
             localStorage.removeItem('user_token');
             this.isUserLoggedIn = false;
             window.location.href = '/login';
         },
         addSectionHandler(){
-            // window.location.href = '/librarian/add-section';
+            window.location.href = '/librarian/add_section';
         },
         fetchSections(){
             const myHeaders = new Headers();
@@ -71,7 +78,7 @@ export default{
                 if (response.status === 200) {
                     return (response.json())
                 } else if (response.status === 401) {
-                    window.alert('Invalid Credentials');
+                    window.alert('Token expired! Please login again');
                     this.logout();
                 } else if (response.status === 500) {
                     window.alert('Internal server error');
@@ -82,10 +89,21 @@ export default{
             .then((result) => {
                 if (result) {
                     this.sections = result.Sections;
+                    this.original_sections = result.Sections;
                 }
                 console.log(this.sections)
             })
             .catch((error) => console.error(error));
+        },
+        search_section(query){
+            this.queryString = query;
+            
+            if (query === '') {
+                this.sections = this.original_sections;
+            } else {
+                this.sections = this.original_sections.filter(section => section.section.toLowerCase().includes(query.toLowerCase()));
+            }
+            
         }
     }
 }

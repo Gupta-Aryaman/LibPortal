@@ -5,6 +5,10 @@ import LibrarianLoginPage from './components/LibrarianLoginPage.vue';
 import UserDashboard from './components/UserDashboard.vue';
 import UserMyBooks from './components/UserMyBooks.vue';
 import LibrarianDashboard from './components/LibrarianDashboard.vue';
+import LibrarianAddSection from './components/LibrarianAddSection.vue';
+import LibrarianViewBook from './components/LibrarianViewBook.vue';
+import LibrarianAddBookForm from './components/LibrarianAddBookForm.vue';
+import LibrarianRequests from './components/LibrarianRequests.vue';
 
 const routes = [
     {
@@ -34,6 +38,22 @@ const routes = [
     {
         path: '/librarian/dashboard',
         component: LibrarianDashboard,
+    },
+    {
+        path: '/librarian/add_section',
+        component: LibrarianAddSection,
+    },
+    {
+        path: '/librarian/view_books',
+        component: LibrarianViewBook,
+    },
+    {
+        path: '/librarian/add_book',
+        component: LibrarianAddBookForm,
+    },
+    {
+        path: '/librarian/requests',
+        component: LibrarianRequests,
     }
 ];
 

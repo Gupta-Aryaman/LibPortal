@@ -1,6 +1,6 @@
 <template>
     <div class="card" style="width: 18rem;">
-        <img v-if="picturePath" :src="picturePath" class="card-img-top" alt="...">
+        <img v-if="picturePath" :src="'/images/' + picturePath" class="card-img-top">
         <img v-else src="https://via.placeholder.com/150" class="card-img-top" alt="...">
         <div class="card-body p-3">
             <h5 class="card-title">{{ title }}</h5>
@@ -32,8 +32,17 @@
         },
         data() {
             return {
-                showOverflow: false
+                showOverflow: false,
+                // icon: L.icon(),
             };
+        },
+        created() {
+            // this.icon = L.icon({
+            //     iconUrl: this.picturePath,
+            //     iconSize: [50, 50],
+            //     iconAnchor: [25, 25],
+            //     popupAnchor: [0, -25],
+            // });
         },
         methods: {
             toggleOverflow() {

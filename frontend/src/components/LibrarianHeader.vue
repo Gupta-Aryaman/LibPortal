@@ -79,7 +79,8 @@
             // },
             searchSection(event) {
                 event.preventDefault();
-                window.location.href = `/librarian/dashboard?section=${this.searchQuery}`;
+                // window.location.href = `/librarian/dashboard?section=${this.searchQuery}`;
+                this.$emit('search_section', this.searchQuery)
             }
         }
     }

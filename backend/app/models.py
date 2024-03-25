@@ -57,6 +57,7 @@ class Sections(Base):
     id = Column(Integer, primary_key=True)
     section = Column(String(50))
     description = Column(String(200))
+    date_created = Column(Date, default = datetime.date.today())
 
     def __init__(self, section=None, description=None):
         self.section = section
@@ -69,7 +70,8 @@ class Sections(Base):
         return {
             'id': self.id,
             'section': self.section,
-            'description': self.description
+            'description': self.description,
+            'date_created': self.date_created
         }
     
 
@@ -84,15 +86,16 @@ class Books(Base):
     image = Column(String(200), nullable=True)
     # content = Column(String(200))
 
-    def __init__(self, title=None, author=None, section=None, description=None, available_copies=None):
+    def __init__(self, title=None, author=None, section=None, description=None, available_copies=None, image=None):
         self.title = title
         self.author = author
         self.section = section
         self.description = description
         self.available_copies = available_copies
+        self.image = image
 
     def __repr__(self):
-        return f"Book(title='{self.title}', author={self.author}, section={self.section}, description={self.description}, available_copies={self.available_copies})"
+        return f"Book(title='{self.title}', author={self.author}, section={self.section}, description={self.description}, available_copies={self.available_copies}, image={self.image})"
     
     def serialize(self):
         return {

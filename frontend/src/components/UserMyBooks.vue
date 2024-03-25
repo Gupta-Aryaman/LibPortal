@@ -1,5 +1,5 @@
 <template>
-    <UserHeader/>
+    <UserHeader @search_book="search_book"/>
 
     <div class="container pt-5">
 
@@ -19,7 +19,7 @@
             <h3>Borrowed</h3>
  
             <div class="mt-2" v-if="borrowed_books.length > 0" v-for="book in borrowed_books" :key="book.id">
-                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :category="'borrowed'" :req_id="book.req_id" @returned="fetchData"/>
+                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :returnDate="book.scheduled_return_date" :category="'borrowed'" :req_id="book.req_id" @returned="fetchData"/>
             </div>  
             <div class="d-flex justify-content-center align-items-center" v-else>
                 <h4>No books found!</h4>
@@ -32,7 +32,7 @@
             <h3>Returned/Revoked</h3>
 
             <div class="mt-2" v-if="returned_books.length > 0" v-for="book in returned_books" :key="book.id">
-                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :category="'returned'" :req_id="book.req_id"/>
+                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :category="'returned'" :req_id="book.req_id" :returnDate="book.actual_return_date"/>
             </div>  
             <div class="d-flex justify-content-center align-items-center" v-else>
                 <h4>No books found!</h4>
@@ -59,12 +59,13 @@
                 approval_pending_books: [],
                 borrowed_books: [],
                 returned_books: [],
+                original_approval_pending_books: [],
+                original_borrowed_books: [],
+                original_returned_books: [],
+                queryString: '',
             };
         },
         created(){
-            // this.fetchApprovalPendingBooks();
-            // this.fetchBorrowedBooks();
-            // this.fetchReturnedBooks();
             this.fetchData();
         },
         methods: {
@@ -75,10 +76,8 @@
                         this.fetchBorrowedBooks(),
                         this.fetchReturnedBooks()
                     ]);
-                    this.loading = false; // Set loading to false when all data is fetched
                 } catch (error) {
                     console.error(error);
-                    // Handle error here
                 }
             },
             async fetchApprovalPendingBooks(){
@@ -105,7 +104,7 @@
                     .then((result) => {
                         result = result.Books;
                         this.approval_pending_books = result;
-                        console.log(this.approval_pending_books);
+                        this.original_approval_pending_books = result;
                     })
                     .catch((error) => console.error(error));
             },
@@ -133,7 +132,7 @@
                     .then((result) => {
                         result = result.Books;
                         this.borrowed_books = result;
-                        console.log(this.borrowed_books);
+                        this.original_borrowed_books = result;
                     })
                     .catch((error) => console.error(error));
             },
@@ -161,7 +160,7 @@
                     .then((result) => {
                         result = result.Books;
                         this.returned_books = result;
-                        console.log(this.returned_books);
+                        this.original_returned_books = result;
                     })
                     .catch((error) => console.error(error));
             },
@@ -169,7 +168,20 @@
                 localStorage.removeItem('user_token');
                 this.isUserLoggedIn = false;
                 window.location.href = '/login';
-            },          
+            },
+            search_book(query) {
+                this.queryString = query;
+                
+                if (this.queryString === '') {
+                    this.approval_pending_books = this.original_approval_pending_books;
+                    this.borrowed_books = this.original_borrowed_books;
+                    this.returned_books = this.original_returned_books;
+                } else {
+                    this.approval_pending_books = this.original_approval_pending_books.filter(book => (book.title.toLowerCase().includes(this.queryString.toLowerCase()) || book.section.toLowerCase().includes(this.queryString.toLowerCase())));
+                    this.borrowed_books = this.original_borrowed_books.filter(book => (book.title.toLowerCase().includes(this.queryString.toLowerCase()) || book.section.toLowerCase().includes(this.queryString.toLowerCase())));
+                    this.returned_books = this.original_returned_books.filter(book => (book.title.toLowerCase().includes(this.queryString.toLowerCase()) || book.section.toLowerCase().includes(this.queryString.toLowerCase())));
+                }
+            }
         }
     };
 </script>

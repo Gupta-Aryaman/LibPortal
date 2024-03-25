@@ -1,5 +1,8 @@
 using pipenv for environment maintenance
 ```
+pipenv shell //activate shell
+```
+```
 pipenv install *package_name*
 ```
 ```

@@ -6,13 +6,15 @@ import datetime
 from dotenv import load_dotenv
 import os
 from .helpers import user_token_required, librarian_token_required
-from random import shuffle
+from werkzeug.utils import secure_filename
 from sqlalchemy import or_
+import uuid
 
 load_dotenv()
 
 main = Blueprint('main', __name__)
 secret_key = os.getenv('SECRET_KEY')
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
 
 @main.route('/signup', methods = ["POST"])
@@ -110,9 +112,9 @@ def list_books(current_user):
         res = []
         for book, section in books:
             if book.id in borrowed_books:
-                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": True})
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": True, "image": book.image})
             else:
-                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": False})
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": False, "image": book.image})
         # shuffle(res)
         return make_response({"Books": res}, 200)
         
@@ -233,10 +235,9 @@ def list_borrowed_books(current_user):
                 BorrowedBooks.is_revoked == False,
                 BorrowedBooks.is_returned == False
             ).all()
-
         res = []
         for book, book_details, section in borrowed_books:
-            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section})
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "scheduled_return_date": book.scheduled_return_date})
 
         return make_response({"Books": res}, 200)
     except Exception as e:
@@ -259,7 +260,7 @@ def list_returned_books(current_user):
             ).all()
         res = []
         for book, book_details, section in returned_books:
-            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section})
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "actual_return_date": book.actual_return_date})
         return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
@@ -355,21 +356,38 @@ def add_book(current_user):
     Add a book
     '''
     try:
-        title = request.json['title']
-        author = request.json['author']
-        section = request.json['section']
-        description = request.json['description']
-        available_copies = request.json['available_copies']
+        title = request.form['title']
+        author = request.form['author']
+        section = request.form['section']
+        description = request.form['description']
+        available_copies = request.form['available_copies']
 
-        # content = request.json['content']
+        # Get the uploaded file
+        uploaded_file = request.files['picture']
 
         section = db_session.query(Sections).filter(Sections.section.ilike(section)).first()
-        book = Books(title, author, section.id, description, available_copies)
+        if not section:
+            return make_response({"Status": "Section not found"}, 404)
+
+        if uploaded_file:
+            filename = secure_filename(uploaded_file.filename)
+            unique_filename = str(uuid.uuid4()) + '_' + filename
+            upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+            
+            # Save the file to the designated folder
+            uploaded_file.save(upload_path)
+
+            book = Books(title, author, section.id, description, available_copies, unique_filename)
+
+        else:
+            book = Books(title, author, section.id, description, available_copies)
+
         db_session.add(book)
         db_session.commit()
 
         return make_response({"Status": "Book added successfully"}, 200)
     except Exception as e:
+        print(str(e))
         return make_response({"Status": str(e)}, 500)
     
 
@@ -394,9 +412,15 @@ def list_books_in_section_librarian(current_user):
     '''
     try:
         section = request.args.get('section')
-        section = db_session.query(Sections).filter(Sections.section.ilike(section)).first()
-        books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Sections.section.ilike(section.section)).all()
-        return make_response({"Books in section": [book.serialize() for book in books]}, 200)
+        books = db_session.query(Books).join(Sections, Books.section == Sections.id).filter(Sections.section == section).all()
+        
+        res = []
+        for book in books:
+            borrowed_by = db_session.query(BorrowedBooks, User).join(User, BorrowedBooks.user_id == User.id).filter(BorrowedBooks.book_id == book.id, BorrowedBooks.is_approved == True, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).all()
+            borrowed_by = [user.email for book, user in borrowed_by]
+            res.append({"title": book.title, "author": book.author, "available_copies": book.available_copies, "borrowed_by": borrowed_by})
+
+        return make_response({"books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
 
@@ -407,8 +431,16 @@ def list_borrowed_books_librarian(current_user):
     List all borrowed books
     '''
     try:
-        borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.is_returned == False, BorrowedBooks.is_approved == True).all()
-        return make_response({"Borrowed Books": [book.serialize() for book in borrowed_books]}, 200)
+        borrowed_books = db_session.query(User.email, Books.title, BorrowedBooks.id, BorrowedBooks.scheduled_return_date, Books.id, User.id)\
+            .join(BorrowedBooks, BorrowedBooks.user_id == User.id)\
+            .join(Books, BorrowedBooks.book_id == Books.id)\
+            .filter(BorrowedBooks.is_approved == True, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).all()
+
+        res = []
+        for user, book, req_id, return_date, book_id, user_id in borrowed_books:
+            res.append({"email": user, "title": book, "req_id": req_id, "scheduled_return_date": return_date, "book_id": book_id, "user_id": user_id})
+        
+        return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
     
@@ -420,9 +452,14 @@ def list_pending_approval_books(current_user):
     List all books pending approval
     '''
     try:
-        pending_approval_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.is_approved == False).all()
-        return make_response({"Pending Approval Books": [book.serialize()
-         for book in pending_approval_books]}, 200)
+        pending_approval_books = db_session.query(User.email, Books.title, BorrowedBooks.id, Books.id, User.id)\
+            .join(BorrowedBooks, BorrowedBooks.user_id == User.id)\
+            .join(Books, BorrowedBooks.book_id == Books.id)\
+            .filter(BorrowedBooks.is_approved == False, BorrowedBooks.is_rejected == False).all()
+        res = []
+        for user, book, req_id, book_id, user_id in pending_approval_books:
+            res.append({"email": user, "title": book, "req_id": req_id, "book_id": book_id, "user_id": user_id})
+        return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
     
@@ -434,17 +471,23 @@ def approve_book_borrow(current_user):
     Approve a book borrow
     '''
     try:
-        book_id = request.json['book_id']
+        req_id = request.json['req_id']
         user_id = request.json['user_id']
+        book_id = request.json['book_id']
+
+        user_already_borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == user_id, BorrowedBooks.is_approved == True, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).count()
+
+        if user_already_borrowed_book >= 5:
+            return make_response({"Status": "User has already borrowed 5 books"}, 403)
 
         book = db_session.query(Books).filter(Books.id == book_id).first()
         
         if book.available_copies == 0:
-            return make_response({"Status": "Book not available"}, 403)
+            return make_response({"Status": "Book not available"}, 404)
         else:
             book.available_copies -= 1
 
-        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id, BorrowedBooks.user_id == user_id, BorrowedBooks.is_approved == False, BorrowedBooks.is_rejected == False).first()
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.id == req_id).first()
 
         borrowed_book.is_approved = True
         borrowed_book.borrow_date = datetime.date.today()
@@ -464,10 +507,10 @@ def reject_book_borrow(current_user):
     Reject a book borrow
     '''
     try:
-        book_id = request.json['book_id']
-        user_id = request.json['user_id']
+        req_id = request.json['req_id']
 
-        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id, BorrowedBooks.user_id == user_id, BorrowedBooks.is_approved == False, BorrowedBooks.is_rejected == False).first()
+        # borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.req_id == req_id, BorrowedBooks.is_approved == False, BorrowedBooks.is_rejected == False).first()
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.id == req_id).first()
 
         borrowed_book.is_rejected = True
 
@@ -486,18 +529,19 @@ def revoke_borrowed_book(current_user):
     '''
     try:
         book_id = request.json['book_id']
-        user_id = request.json['user_id']
+        req_id = request.json['req_id']
 
-        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id, BorrowedBooks.user_id == user_id, BorrowedBooks.is_approved == True, BorrowedBooks.is_rejected == False).first()
+        borrowed_book = db_session.query(BorrowedBooks).filter(BorrowedBooks.id == req_id).first()
 
-        borrowed_book.is_approved = False
         borrowed_book.is_revoked = True
+        borrowed_book.is_returned = True
+        borrowed_book.actual_return_date = datetime.date.today()
 
         book = db_session.query(Books).filter(Books.id == book_id).first()
         book.available_copies += 1
 
         db_session.commit()
 
-        return make_response({"Status": "Book borrow revoked successfully"}, 200)
+        return make_response({"Status": "Borrowed Book revoked successfully"}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)

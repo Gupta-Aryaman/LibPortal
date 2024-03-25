@@ -23,10 +23,10 @@
                 </ul>
 
             </div>
-            <form class="d-flex p-1 search" role="search">
-                <input class="form-control me-2" type="search" placeholder="Search for books" aria-label="Search" v-model="searchQuery">
-                <button class="btn btn-outline-success me-2" v-on:click="searchBook($event)">Search Books</button>
-                <button class="btn btn-outline-success" v-on:click="searchSection($event)">Search Sections</button>
+            <form class="d-flex p-3 search" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search for books or sections" aria-label="Search" v-model="searchQuery">
+                <button class="btn btn-outline-success me-2" v-on:click="searchBook($event)">Search</button>
+                <!-- <button class="btn btn-outline-success" v-on:click="searchSection($event)">Search Sections</button> -->
             </form>
 
         </div>
@@ -76,12 +76,9 @@
             },
             searchBook(event) {
                 event.preventDefault();
-                window.location.href = `/dashboard?title=${this.searchQuery}`;
+                // window.location.href = `/dashboard?title=${this.searchQuery}`;
+                this.$emit('search_book', this.searchQuery);
             },
-            searchSection(event) {
-                event.preventDefault();
-                window.location.href = `/dashboard?section=${this.searchQuery}`;
-            }
         }
     }
 </script>

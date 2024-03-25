@@ -1,12 +1,20 @@
 <template>
     <div class="card">
         <div class="card-body d-flex justify-content-between">
-            <div class="fs-6">
-                {{ title }}  |  {{ author }}  |  {{ section }}
+            <div class="fs-6" v-if="category == 'borrowed'">
+                {{ title }}  | <i>by {{ author }}</i>  
             </div>
-            <button v-if="category == 'approvalPending'" class="btn btn-danger" @click="cancelRequestHandler">Cancel Request</button>
-            <button v-if="category == 'borrowed'" class="btn btn-warning" @click="returnBookHandler">Return</button>
-            <button v-if="category == 'returned'" class="btn btn-primary">View</button>
+            <div class="fs-6" v-else>
+                {{ title }}  |  <i>by {{ author }}</i>  |  {{ section }}
+            </div>
+
+            <div class="d-flex gap-2">
+                <button v-if="category == 'approvalPending'" class="btn btn-danger" @click="cancelRequestHandler">Cancel Request</button>
+                <p v-if="category == 'borrowed' || category == 'returned'" style="color: red;">{{ convert_date(returnDate) }}</p>
+                <button v-if="category == 'borrowed'" class="btn btn-warning" @click="returnBookHandler">Return</button>
+                <button v-if="category == 'returned'" class="btn btn-primary">View</button>
+            </div>
+            
         </div>
     </div>
 </template>
@@ -19,7 +27,8 @@
             author: String,
             section: String,
             category: String,
-            req_id: Number
+            req_id: Number,
+            returnDate: String
         },
         methods: {
             cancelRequestHandler() {
@@ -80,7 +89,13 @@
                     }
                 })
                 .catch((error) => console.error(error));
-            }
+            },
+            convert_date(dateString){
+                const date = new Date(dateString);
+                const formattedDate = date.toLocaleDateString();
+                return formattedDate
+
+            },
         }
     };
 </script>
