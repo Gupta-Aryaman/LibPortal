@@ -9,6 +9,8 @@ python-dotenv = "*"
 requests = "*"
 pyjwt = "*"
 flask-cors = "*"
+redis = "*"
+celery = {extras = ["redis"], version = "*"}
 
 [dev-packages]
 

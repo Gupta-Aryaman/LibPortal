@@ -10,12 +10,18 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import or_
 import uuid
 
+from .tasks import just_say_hello
+
 load_dotenv()
 
 main = Blueprint('main', __name__)
 secret_key = os.getenv('SECRET_KEY')
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
+@main.route('/hello')
+def hello():
+    job = just_say_hello.delay("John")
+    return str(job), 200
 
 @main.route('/signup', methods = ["POST"])
 def signup_user():
