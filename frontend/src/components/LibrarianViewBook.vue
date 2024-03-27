@@ -5,7 +5,7 @@
         <h3 class="pb-4">{{ section }}</h3>
         <div class="row"  v-if="books.length">
             <div class="col-md-3 mb-3" v-for="book in books" :key="book.id">
-                <LibrarianSectionBookCard :book="book" @logout="logout" @borrowed="borrowed"/>
+                <LibrarianSectionBookCard :book="book" @logout="logout" @borrowed="borrowed" @delete_book="delete_book"/>
             </div>
         </div>
         <div class="d-flex justify-content-center align-items-center" v-else>
@@ -84,6 +84,9 @@ export default{
                 this.books = this.original_books.filter(book => book.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
             }
         },
+        delete_book(book_id){
+            this.fetchBooks();
+        }
     }
     
 }

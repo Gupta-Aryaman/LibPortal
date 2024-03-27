@@ -58,6 +58,7 @@ class Sections(Base):
     section = Column(String(50))
     description = Column(String(200))
     date_created = Column(Date, default = datetime.date.today())
+    is_deleted = Column(Boolean, default = False)
 
     def __init__(self, section=None, description=None):
         self.section = section
@@ -71,7 +72,8 @@ class Sections(Base):
             'id': self.id,
             'section': self.section,
             'description': self.description,
-            'date_created': self.date_created
+            'date_created': self.date_created,
+            'is_deleted': self.is_deleted
         }
     
 
@@ -84,6 +86,7 @@ class Books(Base):
     description = Column(String(200))
     available_copies = Column(Integer)
     image = Column(String(200), nullable=True)
+    is_deleted = Column(Boolean, default = False)
     # content = Column(String(200))
 
     def __init__(self, title=None, author=None, section=None, description=None, available_copies=None, image=None):
@@ -106,6 +109,7 @@ class Books(Base):
             'description': self.description,
             'available_copies': self.available_copies,
             'image': self.image,
+            'is_deleted': self.is_deleted
             # 'content': self.content
         }
     

@@ -4,7 +4,7 @@
     <div class="container pt-5">
         <div class="row"  v-if="sections.length">
             <div class="col-md-3 mb-3" v-for="section in sections" :key="section.id">
-                <LibrarianSectionCard :title="section.section" :description="section.description" :date="this.convert_date(section.date_created)"/>
+                <LibrarianSectionCard :title="section.section" :description="section.description" :date="this.convert_date(section.date_created)" :sec_id="section.id" :is_deleted="section.is_deleted" @delete_section="delete_section" @restore_section="delete_section"/>
             </div>
         </div>
         <div class="d-flex justify-content-center align-items-center" v-else>
@@ -104,6 +104,9 @@ export default{
                 this.sections = this.original_sections.filter(section => section.section.toLowerCase().includes(query.toLowerCase()));
             }
             
+        },
+        delete_section(sec_id){
+            this.fetchSections();
         }
     }
 }

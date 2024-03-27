@@ -2,7 +2,7 @@
     <!-- <LibrarianHeader /> -->
     <div class="vh-100 d-flex justify-content-center align-items-center">
         <form enctype="multipart/form-data" class="w-50 ">
-            <h1 id="heading">New Post</h1>
+            <h1 id="heading">Add New Book</h1>
             <div class="form-group">
                 <label class="form-label">Book Name<span class="text-danger">*</span></label>
                 <input type="text" class="form-control" v-model="bookName" required>
@@ -47,7 +47,12 @@ export default {
         if (localStorage.getItem('user_token') === null) {
             this.$router.push({ name: 'Login' });
         }
-        if (this.$route.query.section !== undefined) {
+        if (this.$route.query.book_id !== undefined) {
+            this.edit_book_id = this.$route.query.book_id;
+            this.isEdit = true;
+            this.fetchBook();
+        }
+        else if (this.$route.query.section !== undefined) {
             this.section = this.$route.query.section;
         }
     },
@@ -58,7 +63,9 @@ export default {
             description: '',
             authorName: '',
             copies: 0,
-            selectedFile: null
+            selectedFile: null,
+            edit_book_id: '',
+            isEdit: false
         }
     },
     computed: {
@@ -68,7 +75,7 @@ export default {
     },
     methods: {
         cancelHandler() {
-            window.location.href = '/librarian/dashboard';
+            this.$router.push('/librarian/dashboard');
         },
         submitHandler(event){
             event.preventDefault();
@@ -76,24 +83,103 @@ export default {
             const myHeaders = new Headers();
             myHeaders.append("Authorization", "Bearer " + localStorage.getItem('user_token'));
 
-            const formdata = new FormData();
-            formdata.append("title", this.bookName);
-            formdata.append("author", this.authorName);
-            formdata.append("section", this.section);
-            formdata.append("description", this.description);
-            formdata.append("available_copies", this.copies);
-            formdata.append("picture", this.selectedFile);
+            if(this.isEdit == false){
+                const formdata = new FormData();
+                formdata.append("title", this.bookName);
+                formdata.append("author", this.authorName);
+                formdata.append("section", this.section);
+                formdata.append("description", this.description);
+                formdata.append("available_copies", this.copies);
+                formdata.append("picture", this.selectedFile);
 
+                const requestOptions = {
+                    method: "POST",
+                    headers: myHeaders,
+                    body: formdata,
+                    redirect: "follow"
+                };
 
+                fetch("http://localhost:5000/librarian/add_book", requestOptions)
+                .then((response) => {
+                    if (response.status === 200) {
+                        return (response.json())
+                    } else if (response.status === 401) {
+                        window.alert('Token is expired, please login again!');
+                        this.logout();
+                    } else if (response.status === 500) {
+                        window.alert('Internal server error');
+                    } else if(response.status === 400) {
+                        window.alert('Invalid Input:', response.status);
+                    } else if(response.status === 404) {
+                        window.alert('Section not found:', response.status);
+                    }
+                })
+                .then((result) => {
+                    if (result !== undefined) {
+                        window.alert('Book added successfully');
+                        window.location.href = '/librarian/view_books?section=' + this.section;
+                    }
+                })
+                .catch((error) => console.error(error));
+            }
+            else{
+                const formdata = new FormData();
+                formdata.append("title", this.bookName);
+                formdata.append("author", this.authorName);
+                formdata.append("description", this.description);
+                formdata.append("available_copies", this.copies);
+                formdata.append("picture", this.selectedFile);
+                formdata.append("book_id", this.edit_book_id);
+
+                const requestOptions = {
+                    method: "PUT",
+                    headers: myHeaders,
+                    body: formdata,
+                    redirect: "follow"
+                };
+
+                fetch(`http://localhost:5000/librarian/edit_book?book_id=${this.edit_book_id}`, requestOptions)
+                .then((response) => {
+                    if (response.status === 200) {
+                        return (response.json())
+                    } else if (response.status === 401) {
+                        window.alert('Token is expired, please login again!');
+                        this.logout();
+                    } else if (response.status === 500) {
+                        window.alert('Internal server error');
+                    } else if(response.status === 400) {
+                        window.alert('Invalid Input:', response.status);
+                    } else if(response.status === 404) {
+                        window.alert('Section not found:', response.status);
+                    }
+                })
+                .then((result) => {
+                    if (result !== undefined) {
+                        window.alert('Book edited successfully');
+                        window.location.href = '/librarian/view_books?section=' + this.section;
+                    }
+                })
+                .catch((error) => console.error(error));
+            }
+            
+
+            
+
+        },
+        handleFileUpload(event) {
+            this.selectedFile = event.target.files[0];
+        },
+        fetchBook() {
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + localStorage.getItem('user_token'));
 
             const requestOptions = {
-                method: "POST",
+                method: "GET",
                 headers: myHeaders,
-                body: formdata,
                 redirect: "follow"
             };
 
-            fetch("http://localhost:5000/librarian/add_book", requestOptions)
+            fetch(`http://localhost:5000/librarian/get_edit_book?book_id=${this.edit_book_id}`, requestOptions)
             .then((response) => {
                 if (response.status === 200) {
                     return (response.json())
@@ -102,23 +188,23 @@ export default {
                     this.logout();
                 } else if (response.status === 500) {
                     window.alert('Internal server error');
-                } else if(response.status === 400) {
-                    window.alert('Invalid Input:', response.status);
-                } else if(response.status === 404) {
-                    window.alert('Section not found:', response.status);
+                } else {
+                    window.alert('Unexpected status code:', response.status);
                 }
             })
             .then((result) => {
-                if (result !== undefined) {
-                    window.alert('Book added successfully');
-                    window.location.href = '/librarian/view_books?section=' + this.section;
-                }
+                this.bookName = result.book.title;
+                this.authorName = result.book.author;
+                this.description = result.book.description;
+                this.copies = result.book.available_copies;
+                this.section = result.section;
             })
-            .catch((error) => console.error(error));
-
+            .catch((error) => console.log('error', error));
         },
-        handleFileUpload(event) {
-            this.selectedFile = event.target.files[0];
+        logout(){
+            localStorage.removeItem('user_token');
+            this.isUserLoggedIn = false;
+            window.location.href = '/login';
         }
     }
 };

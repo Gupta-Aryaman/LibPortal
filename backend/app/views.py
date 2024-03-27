@@ -92,7 +92,7 @@ def list_books(current_user):
 
             if request.args.get("section"):
                 section = request.args.get("section")
-                books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%"), Sections.section.ilike(section)).all()
+                books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%"), Sections.section.ilike(section), Books.is_deleted == False).all()
             else:
                 books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.title.like("%" + title + "%")).all()
 
@@ -100,11 +100,11 @@ def list_books(current_user):
         
         elif request.args.get("section"):
             section = request.args.get("section")
-            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Sections.section.like("%"+section+"%")).all()
+            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Sections.section.like("%"+section+"%"), Books.is_deleted == False).all()
             # return make_response({"Books": [book.serialize() for book in books]}, 200)
 
         else:
-            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).all()
+            books = db_session.query(Books, Sections.section).join(Sections, Books.section == Sections.id).filter(Books.is_deleted == False).all()
         
         borrowed_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False, BorrowedBooks.is_rejected == False).all()
         borrowed_books = [book.book_id for book in borrowed_books]
@@ -256,7 +256,8 @@ def list_returned_books(current_user):
             join(Sections, Books.section == Sections.id).\
             filter(
                 BorrowedBooks.user_id == current_user.id,
-                or_(BorrowedBooks.is_returned == True, BorrowedBooks.is_revoked == True)
+                or_(BorrowedBooks.is_returned == True, BorrowedBooks.is_revoked == True),
+                Books.is_deleted == False
             ).all()
         res = []
         for book, book_details, section in returned_books:
@@ -391,6 +392,124 @@ def add_book(current_user):
         return make_response({"Status": str(e)}, 500)
     
 
+@main.route('/librarian/delete_book', methods = ["DELETE"])
+@librarian_token_required
+def delete_book(current_user):
+    '''
+    Delete a book
+    '''
+    try:
+        book_id = request.json['book_id']
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+
+        if not book:
+            return make_response({"Status": "Book not found"}, 404)
+
+        book.is_deleted = True
+
+        borrow_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book_id, or_(BorrowedBooks.is_approved == True, (BorrowedBooks.is_approved == False and BorrowedBooks.is_rejected == False)), BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).all()
+
+        for b in borrow_books:
+            if b.is_approved == False:
+                b.is_rejected = True
+                continue
+            else:
+                b.is_revoked = True
+                b.is_returned = True
+                b.actual_return_date = datetime.date.today()
+
+        db_session.commit()
+
+        return make_response({"Status": "Book deleted successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/restore_book', methods = ["POST"])
+@librarian_token_required
+def restore_book(current_user):
+    '''
+    Restore a book
+    '''
+    try:
+        book_id = request.json['book_id']
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+
+        if not book:
+            return make_response({"Status": "Book not found"}, 404)
+
+        book.is_deleted = False
+
+        db_session.commit()
+
+        return make_response({"Status": "Book restored successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/get_edit_book', methods = ["GET"])
+@librarian_token_required
+def get_edit_book(current_user):
+    '''
+    Get a book to edit
+    '''
+    try:
+        book_id = request.args.get('book_id')
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+        section_name = db_session.query(Sections).filter(Sections.id == book.section).first()
+        if not book:
+            return make_response({"Status": "Book not found"}, 404)
+
+        return make_response({"book": book.serialize(), "section": section_name.section}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/edit_book', methods = ["PUT"])
+@librarian_token_required
+def edit_book(current_user):
+    '''
+    Edit a book
+    '''
+    try:
+        title = request.form['title']
+        author = request.form['author']
+        description = request.form['description']
+        available_copies = request.form['available_copies']
+        book_id = request.form['book_id']
+
+        # Get the uploaded file
+        uploaded_file = request.files['picture']
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+
+        if not book:
+            return make_response({"Status": "Book not found"}, 404)
+
+        if uploaded_file:
+            filename = secure_filename(uploaded_file.filename)
+            unique_filename = str(uuid.uuid4()) + '_' + filename
+            upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+            
+            # Save the file to the designated folder
+            uploaded_file.save(upload_path)
+
+            book.image = unique_filename
+
+        book.title = title
+        book.author = author
+        book.description = description
+        book.available_copies = available_copies
+
+        db_session.commit()
+
+        return make_response({"Status": "Book edited successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
 @main.route('/librarian/list_sections', methods = ["GET"])
 @librarian_token_required
 def list_sections(current_user):
@@ -402,7 +521,98 @@ def list_sections(current_user):
         return make_response({"Sections": [section.serialize() for section in sections]}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/edit_section', methods = ["POST"])
+@librarian_token_required
+def edit_section(current_user):
+    '''
+    Edit a section
+    '''
+    try:
+        section_id = request.json['section_id']
+        section = request.json['section']
+        description = request.json['description']
+
+        s = db_session.query(Sections).filter(Sections.id == section_id).first()
+
+        if not s:
+            return make_response({"Status": "Section not found"}, 404)
+
+        s.section = section
+        s.description = description
+
+        db_session.commit()
+
+        return make_response({"Status": "Section edited successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
     
+
+@main.route('/librarian/delete_section', methods = ["DELETE"])
+@librarian_token_required
+def delete_section(current_user):
+    '''
+    Delete a section
+    '''
+    try:
+        section_id = request.json['section_id']
+
+        s = db_session.query(Sections).filter(Sections.id == section_id).first()
+
+        if not s:
+            return make_response({"Status": "Section not found"}, 404)
+
+        books = db_session.query(Books).filter(Books.section == section_id).all()
+
+        for book in books:
+            book.is_deleted = True
+            borrow_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.book_id == book.id, or_(BorrowedBooks.is_approved == True, (BorrowedBooks.is_approved == False and BorrowedBooks.is_rejected == False)), BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).all()
+
+            for b in borrow_books:
+                if b.is_approved == False:
+                    b.is_rejected = True
+                    continue
+                else:
+                    b.is_revoked = True
+                    b.is_returned = True
+                    b.actual_return_date = datetime.date.today()
+
+        s.is_deleted = True
+        db_session.commit()
+
+        return make_response({"Status": "Section deleted successfully"}, 200)
+    except Exception as e:
+        print(str(e))
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/restore_section', methods = ["POST"])
+@librarian_token_required
+def restore_section(current_user):
+    '''
+    Restore a section
+    '''
+    try:
+        section_id = request.json['section_id']
+
+        s = db_session.query(Sections).filter(Sections.id == section_id).first()
+
+        if not s:
+            return make_response({"Status": "Section not found"}, 404)
+
+        s.is_deleted = False
+
+        books = db_session.query(Books).filter(Books.section == section_id).all()
+        for book in books:
+            book.is_deleted = False
+
+        db_session.commit()
+
+        return make_response({"Status": "Section restored successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
 
 @main.route('/librarian/list_books_in_section', methods = ["GET"])
 @librarian_token_required
@@ -418,7 +628,7 @@ def list_books_in_section_librarian(current_user):
         for book in books:
             borrowed_by = db_session.query(BorrowedBooks, User).join(User, BorrowedBooks.user_id == User.id).filter(BorrowedBooks.book_id == book.id, BorrowedBooks.is_approved == True, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).all()
             borrowed_by = [user.email for book, user in borrowed_by]
-            res.append({"title": book.title, "author": book.author, "available_copies": book.available_copies, "borrowed_by": borrowed_by})
+            res.append({"title": book.title, "author": book.author, "available_copies": book.available_copies, "borrowed_by": borrowed_by, "is_deleted": book.is_deleted, "book_id": book.id})
 
         return make_response({"books": res}, 200)
     except Exception as e:
