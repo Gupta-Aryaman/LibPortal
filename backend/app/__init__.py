@@ -4,20 +4,16 @@ from flask_cors import CORS
 from .extensions import init_db, db_session
 from .models import Librarian
 from .views import main
+
 from . import workers
 
+
 def create_app(config_file='settings.py'):
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="../templates")
     app.config.from_pyfile(config_file)
-    
-    celery = workers.celery
-    celery.conf.update(
-        broker_url=app.config['CELERY_BROKER_URL'],
-        result_backend=app.config['CELERY_RESULT_BACKEND']
-    )
 
-    celery = workers.celery
 
+    # Initialize database
     init_db()
 
     # Create a librarian user
@@ -26,8 +22,20 @@ def create_app(config_file='settings.py'):
         db_session.add(librarian)
         db_session.commit()
 
+    # Enable CORS
     CORS(app)
 
+    # Register blueprints
     app.register_blueprint(main)
 
+    celery = workers.celery
+    celery.conf.update(
+        broker_url = app.config['CELERY_BROKER_URL'],
+        timezone="Asia/Kolkata",
+        result_backend = app.config['CELERY_RESULT_BACKEND'],
+    )
+
+    celery.Task = workers.ContextTask
+    app.app_context().push()
+    
     return app, celery

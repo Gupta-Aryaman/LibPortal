@@ -26,6 +26,7 @@ class User(Base):
 
     def check_password(self, password):
         """Checks if the provided password matches the stored hashed password."""
+        print(self.password == hashlib.sha256(password.encode()).hexdigest())
         return self.password == hashlib.sha256(password.encode()).hexdigest()
 
 
@@ -165,3 +166,22 @@ class Feedback(Base):
         return f"Feedback(user_id='{self.user_id}', feedback={self.feedback})"
     
 
+class LoginLogs(Base):
+    __tablename__ = 'login_logs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    login_date = Column(Date, default = datetime.date.today())
+
+    def __init__(self, user_id=None):
+        self.user_id = user_id
+
+    def __repr__(self):
+        return f"LoginHistory(user_id='{self.user_id}', login_date={self.login_date}, logout_date={self.logout_date})"
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'login_date': self.login_date,
+            'logout_date': self.logout_date
+        }

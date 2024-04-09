@@ -9,8 +9,7 @@ from .helpers import user_token_required, librarian_token_required
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_
 import uuid
-
-from .tasks import just_say_hello
+from .tasks import send_monthly_report 
 
 load_dotenv()
 
@@ -18,10 +17,11 @@ main = Blueprint('main', __name__)
 secret_key = os.getenv('SECRET_KEY')
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
-@main.route('/hello')
-def hello():
-    job = just_say_hello.delay("John")
-    return str(job), 200
+
+@main.route('/check')
+def check():
+    send_monthly_report.delay()
+    return 'OK', 200
 
 @main.route('/signup', methods = ["POST"])
 def signup_user():
@@ -61,10 +61,30 @@ def login_user():
             email = request.json['email']
             password = request.json['password']
 
-            fetch_user = db_session.query(User).filter(User.email == email and User.check_password(password)).all()
+            fetch_user = db_session.query(User).filter(User.email == email).all()
 
-            if not fetch_user:
+            if fetch_user is not None:
+                # Verify the password
+                if fetch_user[0].check_password(password):
+                    # Password is correct, user is authenticated
+                    fetch_user = fetch_user
+                else:
+                    # Password is incorrect
+                    return make_response({"Status": "Invalid Credentials"}, 401)
+            else:
+                # User with given email not found
                 return make_response({"Status": "Invalid Credentials"}, 401)
+
+
+            # if not fetch_user:
+            #     return make_response({"Status": "Invalid Credentials"}, 401)
+
+            login_log = db_session.query(LoginLogs).filter(LoginLogs.user_id == fetch_user[0].id, LoginLogs.login_date == datetime.date.today()).first()
+
+            if not login_log:
+                l = LoginLogs(fetch_user[0].id)
+                db_session.add(l)
+                db_session.commit()
 
             fetch_user = fetch_user[0]
             token = jwt.encode({'username': fetch_user.username, 'email': fetch_user.email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
@@ -76,15 +96,6 @@ def login_user():
         
     return make_response({"Status": 'Internal Server Error!'}, 500)
 
-
-# search a book by title
-# see all books
-
-# borrow a book
-# return a book
-# see all borrowed books
-# see all returned books
-# see all books in a section
 
 @main.route('/list_books', methods = ["GET"])
 @user_token_required
@@ -322,10 +333,22 @@ def login_librarian():
             username = request.json['username']
             password = request.json['password']
 
-            fetch_librarian = db_session.query(Librarian).filter(Librarian.username == username and Librarian.check_password(password)).all()
+            fetch_librarian = db_session.query(Librarian).filter(Librarian.username == username).all()
 
-            if not fetch_librarian:
+            if fetch_librarian is not None:
+                # Verify the password
+                if fetch_librarian[0].check_password(password):
+                    # Password is correct, user is authenticated
+                    fetch_librarian = fetch_librarian
+                else:
+                    # Password is incorrect
+                    return make_response({"Status": "Invalid Credentials"}, 401)
+            else:
+                # User with given email not found
                 return make_response({"Status": "Invalid Credentials"}, 401)
+
+            # if not fetch_librarian:
+            #     return make_response({"Status": "Invalid Credentials"}, 401)
 
             fetch_librarian = fetch_librarian[0]
             token = jwt.encode({'username': fetch_librarian.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
