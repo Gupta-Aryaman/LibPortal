@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 from .helpers import user_token_required, librarian_token_required
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 import uuid
 from .tasks import send_monthly_report 
 
@@ -315,6 +315,35 @@ def list_feedback(current_user):
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
     
+
+@main.route('/fetch_stats', methods = ["GET"])
+@user_token_required
+def fetch_stats(current_user):
+    '''
+    Fetch stats for a student (user)
+    '''
+    try:
+        monthly_counts = db_session.query(
+            func.strftime('%Y-%m', BorrowedBooks.borrow_date).label('month'),
+            func.count().label('book_count')
+        ).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.is_approved==True)\
+        .group_by(func.strftime('%Y-%m', BorrowedBooks.borrow_date)).all()
+
+        borrowed_books_count_by_section = db_session.query(Sections.section, func.count(BorrowedBooks.id)).\
+                                    join(Books, Sections.id == Books.section).\
+                                    join(BorrowedBooks, Books.id == BorrowedBooks.book_id).\
+                                    filter(BorrowedBooks.is_approved == True, BorrowedBooks.user_id == current_user.id).\
+                                    group_by(Sections.section).all()
+
+        bar_months = [month for month, count in monthly_counts]
+        bar_counts = [count for month, count in monthly_counts]
+        
+        pie_sections = [section for section, count in borrowed_books_count_by_section]
+        pie_counts = [count for section, count in borrowed_books_count_by_section]
+
+        return make_response({"bar_months": bar_months, "bar_counts": bar_counts, "pie_sections": pie_sections, "pie_counts": pie_counts}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
 
 
 #######################
@@ -782,5 +811,35 @@ def revoke_borrowed_book(current_user):
         db_session.commit()
 
         return make_response({"Status": "Borrowed Book revoked successfully"}, 200)
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
+
+
+@main.route('/librarian/fetch_stats', methods = ["GET"])
+@librarian_token_required
+def librarian_fetch_stats(current_user):
+    '''
+    Fetch stats for a of all users
+    '''
+    try:
+        monthly_counts = db_session.query(
+            func.strftime('%Y-%m', BorrowedBooks.borrow_date).label('month'),
+            func.count().label('book_count')
+        ).filter(BorrowedBooks.is_approved==True)\
+        .group_by(func.strftime('%Y-%m', BorrowedBooks.borrow_date)).all()
+
+        borrowed_books_count_by_section = db_session.query(Sections.section, func.count(BorrowedBooks.id)).\
+                                    join(Books, Sections.id == Books.section).\
+                                    join(BorrowedBooks, Books.id == BorrowedBooks.book_id).\
+                                    filter(BorrowedBooks.is_approved == True).\
+                                    group_by(Sections.section).all()
+
+        bar_months = [month for month, count in monthly_counts]
+        bar_counts = [count for month, count in monthly_counts]
+        
+        pie_sections = [section for section, count in borrowed_books_count_by_section]
+        pie_counts = [count for section, count in borrowed_books_count_by_section]
+
+        return make_response({"bar_months": bar_months, "bar_counts": bar_counts, "pie_sections": pie_sections, "pie_counts": pie_counts}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)

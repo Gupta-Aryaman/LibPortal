@@ -1,9 +1,9 @@
 <template>
-    <UserHeader />
+    <LibrarianHeader />
     <div v-if="dataLoaded">
 
       <div class="d-flex justify-content-center align-items-center mt-5 mb-5">
-            <h1>All time User Stats</h1>
+            <h1>All time All Users Stats</h1>
         </div>
 
         <div class="row mx-5">
@@ -16,20 +16,20 @@
             
         </div>
     </div>
+</template>
 
-  </template>
-  
-  <script>
-  import UserHeader from './UserHeader.vue';
-  import BarChart from './BarChart.vue';
-  import PieChart from './PieChart.vue';
-  
-  export default {
-    name: 'UserStats',
+
+<script>
+import LibrarianHeader from './LibrarianHeader.vue';
+import BarChart from './BarChart.vue';
+import PieChart from './PieChart.vue';
+
+export default{
+    name: 'LibrarianRequests',
     components: {
-      UserHeader,
-      BarChart,
-      PieChart
+        LibrarianHeader,
+        BarChart,
+        PieChart
     },
     data() {
       return {
@@ -58,7 +58,7 @@
           redirect: "follow"
         };
   
-        fetch("http://localhost:5000/fetch_stats", requestOptions)
+        fetch("http://localhost:5000/librarian/fetch_stats", requestOptions)
           .then(response => response.json())
           .then(data => {
             this.pieLabels = data.pie_sections;
@@ -76,6 +76,6 @@
           });
       }
     }
-  }
-  </script>
-  
+}
+
+</script>

@@ -10,6 +10,7 @@ import LibrarianViewBook from './components/LibrarianViewBook.vue';
 import LibrarianAddBookForm from './components/LibrarianAddBookForm.vue';
 import LibrarianRequests from './components/LibrarianRequests.vue';
 import UserStats from './components/UserStats.vue';
+import LibrarianStats from './components/LibrarianStats.vue';
 
 const routes = [
     {
@@ -59,6 +60,10 @@ const routes = [
     {
         path: '/stats',
         component: UserStats,
+    },
+    {
+        path: '/librarian/stats',
+        component: LibrarianStats,
     }
 ];
 
