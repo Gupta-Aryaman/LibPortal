@@ -129,9 +129,11 @@ def list_books(current_user):
         res = []
         for book, section in books:
             if book.id in borrowed_books:
-                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": True, "image": book.image})
+                feedback = db_session.query(func.avg(Feedback.feedback_rating).label('average')).filter(Feedback.book_id == book.id).all()
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": True, "image": book.image, "feedback": int(feedback[0][0]) if feedback[0][0] else 0})
             else:
-                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": False, "image": book.image})
+                feedback = db_session.query(func.avg(Feedback.feedback_rating).label('average')).filter(Feedback.book_id == book.id).all()
+                res.append({"id": book.id, "title": book.title, "author": book.author, "section": section, "description": book.description, "available_copies": book.available_copies, "is_borrowed": False, "image": book.image, "feedback": int(feedback[0][0]) if feedback[0][0] else 0})
         # shuffle(res)
         return make_response({"Books": res}, 200)
         
@@ -278,7 +280,10 @@ def list_returned_books(current_user):
             ).all()
         res = []
         for book, book_details, section in returned_books:
-            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "actual_return_date": book.actual_return_date})
+
+            feedback = db_session.query(Feedback).filter(Feedback.user_id == current_user.id, Feedback.book_id == book_details.id).first()
+
+            res.append({"book_id":book_details.id, "req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "actual_return_date": book.actual_return_date, "feedback": feedback.feedback_rating if feedback else 0})
         return make_response({"Books": res}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
@@ -293,8 +298,14 @@ def add_feedback(current_user):
     try:
         feedback = request.json['feedback']
         book_id = request.json['book_id']
-        f = Feedback(current_user.id, book_id, feedback)
-        db_session.add(f)
+
+        exising_feedback = db_session.query(Feedback).filter(Feedback.user_id == current_user.id, Feedback.book_id == book_id).first()
+
+        if exising_feedback:
+            exising_feedback.feedback_rating = feedback
+        else:
+            f = Feedback(current_user.id, book_id, feedback)
+            db_session.add(f)
         db_session.commit()
 
         return make_response({"Status": "Feedback added successfully"}, 200)

@@ -4,7 +4,7 @@
     <div class="container pt-5">
         <div class="row"  v-if="books.length">
             <div class="col-md-3 mb-3" v-for="book in books" :key="book.id">
-                <BookCard :title="book.title" :author="book.author" :section="book.section" :description="book.description" :copies="book.available_copies" :isBorrowed="book.is_borrowed" :bookId="book.id" :picturePath="book.image" @logout="logout" @borrowed="borrowed"/>
+                <BookCard :feedback="book.feedback" :title="book.title" :author="book.author" :section="book.section" :description="book.description" :copies="book.available_copies" :isBorrowed="book.is_borrowed" :bookId="book.id" :picturePath="book.image" @logout="logout" @borrowed="borrowed"/>
             </div>
         </div>
         <div class="d-flex justify-content-center align-items-center" v-else>
@@ -71,44 +71,7 @@
 
                 console.log(this.queryString);
                 
-                // if(this.isSection){
-                //     fetch("http://localhost:5000/list_books?section="+this.queryString, requestOptions)
-                //     .then((response) => {
-                //         if (response.status === 200) {
-                //             return response.json();
-                //         } else if (response.status === 401) {
-                //             window.alert("Session expired. Please login again.");
-                //             this.logout();
-                //         } else {
-                //             window.alert("An error occurred. Please try again later.");
-                //         }
-                //     })
-                //     .then((result) => {
-                //         result = result.Books;
-                //         this.books = result;
-                //         console.log(this.books);
-                //     })
-                //     .catch((error) => console.error(error));
-
-                // } else if(this.isTitle){
-                //     fetch("http://localhost:5000/list_books?title="+this.queryString, requestOptions)
-                //     .then((response) => {
-                //         if (response.status === 200) {
-                //             return response.json();
-                //         } else if (response.status === 401) {
-                //             window.alert("Session expired. Please login again.");
-                //             this.logout();
-                //         } else {
-                //             window.alert("An error occurred. Please try again later.");
-                //         }
-                //     })
-                //     .then((result) => {
-                //         result = result.Books;
-                //         this.books = result;
-                //         console.log(this.books);
-                //     })
-                //     .catch((error) => console.error(error));
-                // } else{
+                
 
                 fetch("http://localhost:5000/list_books", requestOptions)
                 .then((response) => {

@@ -12,6 +12,9 @@
                 <a class="card-text"><b>Copies <br>Available: {{ copies }}</b></a>
                 <button class="btn btn-primary m-2" :class="{'disabled': copies == 0 || isBorrowed}" v-on:click="borrow">Borrow</button>
             </div>
+            <div>
+                <span v-for="index in 5" :class="{ 'filled_star': index <= this.feedback }" class="star">★</span>
+            </div>
 
         </div>
     </div>
@@ -28,7 +31,8 @@
             copies: Number, 
             isBorrowed: Boolean,
             bookId: Number,
-            picturePath: String
+            picturePath: String,
+            feedback: Number
         },
         data() {
             return {
@@ -98,6 +102,13 @@
     }
     .description {
         text-align: left;
+    }
+    .filled_star {
+        color: rgb(255, 106, 0);
+    }
+    .star {
+        font-size: 2vh;
+        cursor:default;
     }
 
 </style>

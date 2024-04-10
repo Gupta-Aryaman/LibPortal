@@ -155,15 +155,15 @@ class Feedback(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     book_id = Column(Integer, ForeignKey('books.id'))
-    feedback = Column(String(200))
+    feedback_rating = Column(Integer)
 
-    def __init__(self, user_id=None, book_id=None, feedback=None):
+    def __init__(self, user_id=None, book_id=None, feedback_rating=None):
         self.user_id = user_id
         self.book_id = book_id
-        self.feedback = feedback
+        self.feedback_rating = feedback_rating
 
     def __repr__(self):
-        return f"Feedback(user_id='{self.user_id}', feedback={self.feedback})"
+        return f"Feedback(user_id='{self.user_id}', feedback={self.feedback_rating})"
     
 
 class LoginLogs(Base):

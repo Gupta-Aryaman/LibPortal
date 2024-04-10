@@ -36,7 +36,7 @@
 
                 <div class="col-12">
                   <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                  <input type="password" class="form-control" :class="{ 'is-invalid': !isPasswordValid && password.length > 0 }" name="password" id="password" value="" v-model="password" required>
+                  <input type="password" class="form-control" :class="{ 'is-invalid': !isPasswordValid && password.length > 0 }" name="password" id="password" value="" v-model="password" placeholder="password" required>
                   <div class="invalid-feedback" v-if="!isPasswordValid && password.length > 0">
                     Password must contain at least one capital letter, one number and should be atleast of 8 characters.
                   </div>

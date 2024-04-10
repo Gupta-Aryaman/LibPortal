@@ -32,7 +32,7 @@
             <h3>Returned/Revoked</h3>
 
             <div class="mt-2" v-if="returned_books.length > 0" v-for="book in returned_books" :key="book.id">
-                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :category="'returned'" :req_id="book.req_id" :returnDate="book.actual_return_date"/>
+                <MyBooksCard :book_id="book.book_id" :title="book.title" :author="book.author" :section="book.section" :category="'returned'" :req_id="book.req_id" :returnDate="book.actual_return_date" :feedback="book.feedback"/>
             </div>  
             <div class="d-flex justify-content-center align-items-center" v-else>
                 <h4>No books found!</h4>
