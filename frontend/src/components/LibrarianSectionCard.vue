@@ -76,6 +76,11 @@
             editHandler() {
                 window.location.href = '/librarian/add_section?edit_id=' + this.sec_id
             },
+            logout() {
+                localStorage.removeItem('user_token');
+                this.isUserLoggedIn = false;
+                window.location.href = '/login';
+            },
             deleteHandler() {
                 
                 if(window.confirm('Are you sure you want to delete this section?')){

@@ -59,7 +59,16 @@ export default{
         };
   
         fetch("http://localhost:5000/librarian/fetch_stats", requestOptions)
-          .then(response => response.json())
+          .then(response => {
+            if (response.status === 200) {
+              return response.json();
+            } else if (response.status === 401) {
+              window.alert('Token is expired, please login again!');
+              this.logout();
+            } else {
+              throw new Error("Failed to fetch data");
+            }
+          })
           .then(data => {
             this.pieLabels = data.pie_sections;
             this.pieData = data.pie_counts;
@@ -74,7 +83,12 @@ export default{
             console.error(error);
             // Handle error
           });
-      }
+      },
+      logout() {
+            localStorage.removeItem('user_token');
+            this.isUserLoggedIn = false;
+            window.location.href = '/login';
+        },
     }
 }
 

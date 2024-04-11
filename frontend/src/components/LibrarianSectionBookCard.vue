@@ -138,7 +138,12 @@ export default{
             })
             .catch((error) => console.error(error));
         
-        }
+        },
+        logout() {
+            localStorage.removeItem('user_token');
+            this.isUserLoggedIn = false;
+            window.location.href = '/login';
+        },
     }
 }
 </script>

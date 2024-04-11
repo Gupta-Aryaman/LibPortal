@@ -10,7 +10,7 @@
             </button>
             <div class="text">
                 <a class="card-text"><b>Copies <br>Available: {{ copies }}</b></a>
-                <button class="btn btn-primary m-2" :class="{'disabled': copies == 0 || isBorrowed}" v-on:click="borrow">Request</button>
+                <button class="btn btn-primary m-2 req_button" :class="{'disabled': copies == 0 || isBorrowed}" v-on:click="borrow">Request</button>
             </div>
             <div>
                 <span v-for="index in 5" :class="{ 'filled_star': index <= this.feedback }" class="star">★</span>
@@ -72,6 +72,7 @@
                 .then((response) => {
                     if (response.status === 200) {
                         this.$emit('borrowed');
+                        this.isBorrowed = true;
                     } else if (response.status === 401) {
                         alert("You are not authorized to borrow books");
                         this.$emit('logout');
@@ -82,6 +83,8 @@
                     }
                 })
                 .catch((error) => console.error(error));
+            
+            
             }
         }
     };

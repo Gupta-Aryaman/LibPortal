@@ -25,7 +25,7 @@
             </div>
             <form class="d-flex p-3 search" role="search">
                 <input class="form-control me-2" type="search" placeholder="Search for Sections" aria-label="Search" v-model="searchQuery">
-                <button class="btn btn-outline-success" v-on:click="searchSection($event)">Search</button>
+                <button class="btn btn-outline-success" v-on:click="searchSection($event)" :class="{disabled: isActive('/librarian/stats')}">Search</button>
             </form>
 
         </div>

@@ -18,6 +18,8 @@ main = Blueprint('main', __name__)
 secret_key = os.getenv('SECRET_KEY')
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
+def clear_cached_route(route):
+    cache.delete_memoized(route)
 
 @main.route('/check')
 def check():
@@ -100,6 +102,7 @@ def login_user():
 
 @main.route('/list_books', methods = ["GET"])
 @user_token_required
+@cache.memoize(timeout=30)
 def list_books(current_user):
     '''
     List all books or search a book by title
@@ -162,6 +165,8 @@ def borrow_book(current_user):
         db_session.add(b)
         db_session.commit()
 
+        clear_cached_route(list_books)
+
         return make_response({"Status": "Book borrowed successfully"}, 200)
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
@@ -182,6 +187,8 @@ def cancel_borrow_request(current_user):
 
         db_session.delete(borrowed_book)
         db_session.commit()
+
+        clear_cached_route(list_approval_pending_books)
 
         return make_response({"Status": "Borrow request cancelled successfully"}, 200)
     except Exception as e:
@@ -208,6 +215,8 @@ def return_book(current_user):
         book.available_copies += 1
 
         db_session.commit()
+        clear_cached_route(list_borrowed_books)
+        clear_cached_route(list_returned_books)
 
         return make_response({"Status": "Book returned successfully"}, 200)
     except Exception as e:
@@ -242,7 +251,7 @@ def list_approval_pending_books(current_user):
 
 @main.route('/list_borrowed_books', methods = ["GET"])
 @user_token_required
-@cache.memoize(timeout=30)
+@cache.memoize(timeout=10)
 def list_borrowed_books(current_user):
     '''
     List all borrowed books
@@ -402,7 +411,7 @@ def login_librarian():
 
             if fetch_librarian is not None:
                 # Verify the password
-                if fetch_librarian[0].check_password(password):
+                if len(fetch_librarian) and fetch_librarian[0].check_password(password):
                     # Password is correct, user is authenticated
                     fetch_librarian = fetch_librarian
                 else:
@@ -438,6 +447,7 @@ def add_section(current_user):
         s = Sections(section, description)
         db_session.add(s)
         db_session.commit()
+        clear_cached_route(list_sections)
 
         return make_response({"Status": "Section added successfully"}, 200)
     except Exception as e:
@@ -481,6 +491,8 @@ def add_book(current_user):
         db_session.add(book)
         db_session.commit()
 
+        clear_cached_route(list_books_in_section_librarian)
+
         return make_response({"Status": "Book added successfully"}, 200)
     except Exception as e:
         print(str(e))
@@ -515,6 +527,7 @@ def delete_book(current_user):
                 b.actual_return_date = datetime.date.today()
 
         db_session.commit()
+        clear_cached_route(list_books_in_section_librarian)
 
         return make_response({"Status": "Book deleted successfully"}, 200)
     except Exception as e:
@@ -538,6 +551,7 @@ def restore_book(current_user):
         book.is_deleted = False
 
         db_session.commit()
+        clear_cached_route(list_books_in_section_librarian)
 
         return make_response({"Status": "Book restored successfully"}, 200)
     except Exception as e:
@@ -605,6 +619,7 @@ def edit_book(current_user):
         book.content = content
 
         db_session.commit()
+        clear_cached_route(list_books_in_section_librarian)
 
         return make_response({"Status": "Book edited successfully"}, 200)
     except Exception as e:
@@ -645,6 +660,7 @@ def edit_section(current_user):
         s.description = description
 
         db_session.commit()
+        clear_cached_route(list_sections)
 
         return make_response({"Status": "Section edited successfully"}, 200)
     except Exception as e:
@@ -682,6 +698,7 @@ def delete_section(current_user):
 
         s.is_deleted = True
         db_session.commit()
+        clear_cached_route(list_sections)
 
         return make_response({"Status": "Section deleted successfully"}, 200)
     except Exception as e:
@@ -710,6 +727,7 @@ def restore_section(current_user):
             book.is_deleted = False
 
         db_session.commit()
+        clear_cached_route(list_sections)
 
         return make_response({"Status": "Section restored successfully"}, 200)
     except Exception as e:
@@ -718,7 +736,7 @@ def restore_section(current_user):
 
 @main.route('/librarian/list_books_in_section', methods = ["GET"])
 @librarian_token_required
-@cache.memoize(timeout=30)
+# @cache.memoize(timeout=30)
 def list_books_in_section_librarian(current_user):
     '''
     List all books in a section
@@ -739,6 +757,7 @@ def list_books_in_section_librarian(current_user):
 
 @main.route('/librarian/list_borrowed_books_librarian', methods = ["GET"])
 @librarian_token_required
+@cache.memoize(timeout=30)
 def list_borrowed_books_librarian(current_user):
     '''
     List all borrowed books
@@ -760,6 +779,7 @@ def list_borrowed_books_librarian(current_user):
 
 @main.route('/librarian/list_pending_approval_books', methods = ["GET"])
 @librarian_token_required
+@cache.memoize(timeout=30)
 def list_pending_approval_books(current_user):
     '''
     List all books pending approval
@@ -807,6 +827,8 @@ def approve_book_borrow(current_user):
         borrowed_book.scheduled_return_date = datetime.date.today() + datetime.timedelta(days=7)
 
         db_session.commit()
+        clear_cached_route(list_pending_approval_books)
+        clear_cached_route(list_borrowed_books_librarian)
 
         return make_response({"Status": "Book borrow approved successfully"}, 200)
     except Exception as e:
@@ -828,6 +850,7 @@ def reject_book_borrow(current_user):
         borrowed_book.is_rejected = True
 
         db_session.commit()
+        clear_cached_route(list_pending_approval_books)
 
         return make_response({"Status": "Book borrow rejected successfully"}, 200)
     except Exception as e:
@@ -854,6 +877,7 @@ def revoke_borrowed_book(current_user):
         book.available_copies += 1
 
         db_session.commit()
+        clear_cached_route(list_borrowed_books_librarian)
 
         return make_response({"Status": "Borrowed Book revoked successfully"}, 200)
     except Exception as e:
