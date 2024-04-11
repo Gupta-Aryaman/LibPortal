@@ -11,6 +11,7 @@ import LibrarianAddBookForm from './components/LibrarianAddBookForm.vue';
 import LibrarianRequests from './components/LibrarianRequests.vue';
 import UserStats from './components/UserStats.vue';
 import LibrarianStats from './components/LibrarianStats.vue';
+import UserViewBook from './components/UserViewBook.vue';
 
 const routes = [
     {
@@ -64,6 +65,10 @@ const routes = [
     {
         path: '/librarian/stats',
         component: LibrarianStats,
+    },
+    {
+        path: '/book/:id',
+        component: UserViewBook,
     }
 ];
 

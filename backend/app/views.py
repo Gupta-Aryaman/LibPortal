@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import or_, func
 import uuid
 from .tasks import send_monthly_report 
+from .cache import cache
 
 load_dotenv()
 
@@ -216,6 +217,7 @@ def return_book(current_user):
 
 @main.route('/list_approval_pending_books', methods = ["GET"])
 @user_token_required
+@cache.memoize(timeout=30)
 def list_approval_pending_books(current_user):
     '''
     List all books pending approval
@@ -240,6 +242,7 @@ def list_approval_pending_books(current_user):
 
 @main.route('/list_borrowed_books', methods = ["GET"])
 @user_token_required
+@cache.memoize(timeout=30)
 def list_borrowed_books(current_user):
     '''
     List all borrowed books
@@ -256,7 +259,7 @@ def list_borrowed_books(current_user):
             ).all()
         res = []
         for book, book_details, section in borrowed_books:
-            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "scheduled_return_date": book.scheduled_return_date})
+            res.append({"req_id": book.id, "title": book_details.title, "author": book_details.author, "section": section.section, "scheduled_return_date": book.scheduled_return_date, "book_id": book_details.id})
 
         return make_response({"Books": res}, 200)
     except Exception as e:
@@ -265,6 +268,7 @@ def list_borrowed_books(current_user):
 
 @main.route('/list_returned_books', methods = ["GET"])
 @user_token_required
+@cache.memoize(timeout=30)
 def list_returned_books(current_user):
     '''
     List all returned books
@@ -329,6 +333,7 @@ def list_feedback(current_user):
 
 @main.route('/fetch_stats', methods = ["GET"])
 @user_token_required
+@cache.memoize(timeout=60)
 def fetch_stats(current_user):
     '''
     Fetch stats for a student (user)
@@ -356,6 +361,26 @@ def fetch_stats(current_user):
     except Exception as e:
         return make_response({"Status": str(e)}, 500)
 
+
+@main.route('/fetch_book/<int:book_id>', methods = ["GET"])
+@user_token_required
+@cache.memoize(timeout=60)
+def view_book(current_user, book_id):
+    '''
+    Fetch a book's data
+    '''
+    try:
+        is_borrowed = db_session.query(BorrowedBooks).filter(BorrowedBooks.user_id == current_user.id, BorrowedBooks.book_id == book_id, BorrowedBooks.is_approved == True, BorrowedBooks.is_returned == False, BorrowedBooks.is_revoked == False).first()
+
+        if not is_borrowed:
+            return make_response({"Status": "Unauthiorized access to book"}, 403)
+
+        book = db_session.query(Books).filter(Books.id == book_id).first()
+
+        return make_response({"Book": book.serialize()}, 200)
+        
+    except Exception as e:
+        return make_response({"Status": str(e)}, 500)
 
 #######################
 #                     #
@@ -431,6 +456,7 @@ def add_book(current_user):
         section = request.form['section']
         description = request.form['description']
         available_copies = request.form['available_copies']
+        content = request.form['content']
 
         # Get the uploaded file
         uploaded_file = request.files['picture']
@@ -447,10 +473,10 @@ def add_book(current_user):
             # Save the file to the designated folder
             uploaded_file.save(upload_path)
 
-            book = Books(title, author, section.id, description, available_copies, unique_filename)
+            book = Books(title, author, section.id, description, available_copies, image=unique_filename, content=content)
 
         else:
-            book = Books(title, author, section.id, description, available_copies)
+            book = Books(title, author, section.id, description, available_copies, content=content)
 
         db_session.add(book)
         db_session.commit()
@@ -548,29 +574,35 @@ def edit_book(current_user):
         description = request.form['description']
         available_copies = request.form['available_copies']
         book_id = request.form['book_id']
-
-        # Get the uploaded file
-        uploaded_file = request.files['picture']
+        content = request.form['content']
 
         book = db_session.query(Books).filter(Books.id == book_id).first()
 
         if not book:
             return make_response({"Status": "Book not found"}, 404)
 
-        if uploaded_file:
-            filename = secure_filename(uploaded_file.filename)
-            unique_filename = str(uuid.uuid4()) + '_' + filename
-            upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-            
-            # Save the file to the designated folder
-            uploaded_file.save(upload_path)
+        try:
+            # Get the uploaded file
+            uploaded_file = request.files['picture']
 
-            book.image = unique_filename
+            
+            if uploaded_file:
+                filename = secure_filename(uploaded_file.filename)
+                unique_filename = str(uuid.uuid4()) + '_' + filename
+                upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+                
+                # Save the file to the designated folder
+                uploaded_file.save(upload_path)
+
+                book.image = unique_filename
+        except:
+            pass
 
         book.title = title
         book.author = author
         book.description = description
         book.available_copies = available_copies
+        book.content = content
 
         db_session.commit()
 
@@ -581,6 +613,7 @@ def edit_book(current_user):
 
 @main.route('/librarian/list_sections', methods = ["GET"])
 @librarian_token_required
+@cache.memoize(timeout=30)
 def list_sections(current_user):
     '''
     List all sections
@@ -685,6 +718,7 @@ def restore_section(current_user):
 
 @main.route('/librarian/list_books_in_section', methods = ["GET"])
 @librarian_token_required
+@cache.memoize(timeout=30)
 def list_books_in_section_librarian(current_user):
     '''
     List all books in a section
@@ -828,6 +862,7 @@ def revoke_borrowed_book(current_user):
 
 @main.route('/librarian/fetch_stats', methods = ["GET"])
 @librarian_token_required
+@cache.memoize(timeout=60)
 def librarian_fetch_stats(current_user):
     '''
     Fetch stats for a of all users
@@ -844,6 +879,8 @@ def librarian_fetch_stats(current_user):
                                     join(BorrowedBooks, Books.id == BorrowedBooks.book_id).\
                                     filter(BorrowedBooks.is_approved == True).\
                                     group_by(Sections.section).all()
+        
+        print(borrowed_books_count_by_section)
 
         bar_months = [month for month, count in monthly_counts]
         bar_counts = [count for month, count in monthly_counts]

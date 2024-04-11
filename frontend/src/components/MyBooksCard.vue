@@ -18,8 +18,9 @@
                 </div>
                                
                 <p v-if="category == 'borrowed' || category == 'returned'" style="color: red;">{{ convert_date(returnDate) }}</p>
+                <button v-if="category == 'borrowed'" class="btn btn-primary" @click="viewBookHandler">View</button>
                 <button v-if="category == 'borrowed'" class="btn btn-warning" @click="returnBookHandler">Return</button>
-                <button v-if="category == 'returned'" class="btn btn-primary">View</button>
+                <!-- <button v-if="category == 'returned'" class="btn btn-primary">View</button> -->
 
             </div>
             
@@ -116,6 +117,9 @@
                     }
                 })
                 .catch((error) => console.error(error));
+            },
+            viewBookHandler() {
+                window.location.href = '/book/' + this.book_id;
             },
             convert_date(dateString){
                 const date = new Date(dateString);

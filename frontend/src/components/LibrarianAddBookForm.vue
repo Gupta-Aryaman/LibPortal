@@ -2,7 +2,8 @@
     <!-- <LibrarianHeader /> -->
     <div class="vh-100 d-flex justify-content-center align-items-center">
         <form enctype="multipart/form-data" class="w-50 ">
-            <h1 id="heading">Add New Book</h1>
+            <h1 id="heading" v-if="isEdit==false">Add New Book</h1>
+            <h1 id="heading" v-else>Edit Book</h1>
             <div class="form-group">
                 <label class="form-label">Book Name<span class="text-danger">*</span></label>
                 <input type="text" class="form-control" v-model="bookName" required>
@@ -29,6 +30,10 @@
             </div>
             
             <br>
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea class="form-control" id="content" rows="3" name="content" v-model="content"></textarea>
+            </div> <br>
             <button class="btn btn-primary" type="submit" @click="submitHandler($event)" :class="{'disabled': !isSubmitValid}">Submit form</button>
             <button class="btn btn-danger ms-2" @click="cancelHandler">Cancel</button>
         </form>
@@ -65,7 +70,8 @@ export default {
             copies: 0,
             selectedFile: null,
             edit_book_id: '',
-            isEdit: false
+            isEdit: false,
+            content: ''
         }
     },
     computed: {
@@ -91,6 +97,7 @@ export default {
                 formdata.append("description", this.description);
                 formdata.append("available_copies", this.copies);
                 formdata.append("picture", this.selectedFile);
+                formdata.append("content", this.content);
 
                 const requestOptions = {
                     method: "POST",
@@ -130,6 +137,7 @@ export default {
                 formdata.append("available_copies", this.copies);
                 formdata.append("picture", this.selectedFile);
                 formdata.append("book_id", this.edit_book_id);
+                formdata.append("content", this.content);
 
                 const requestOptions = {
                     method: "PUT",
@@ -198,6 +206,7 @@ export default {
                 this.description = result.book.description;
                 this.copies = result.book.available_copies;
                 this.section = result.section;
+                this.content = result.book.content;
             })
             .catch((error) => console.log('error', error));
         },

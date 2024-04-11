@@ -10,7 +10,7 @@
             </button>
             <div class="text">
                 <a class="card-text"><b>Copies <br>Available: {{ copies }}</b></a>
-                <button class="btn btn-primary m-2" :class="{'disabled': copies == 0 || isBorrowed}" v-on:click="borrow">Borrow</button>
+                <button class="btn btn-primary m-2" :class="{'disabled': copies == 0 || isBorrowed}" v-on:click="borrow">Request</button>
             </div>
             <div>
                 <span v-for="index in 5" :class="{ 'filled_star': index <= this.feedback }" class="star">★</span>

@@ -1,17 +1,20 @@
 from flask import Flask, Blueprint
 from flask_cors import CORS
+from flask_caching import Cache
 
 from .extensions import init_db, db_session
 from .models import Librarian
 from .views import main
 
 from . import workers
+from .cache import cache
 
 
 def create_app(config_file='settings.py'):
     app = Flask(__name__, template_folder="../templates")
     app.config.from_pyfile(config_file)
 
+    cache.init_app(app)
 
     # Initialize database
     init_db()

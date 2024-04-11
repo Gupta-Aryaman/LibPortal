@@ -25,6 +25,12 @@ def setup_periodic_tasks(sender, **kwargs):
         name='sending monthly report'
     )
 
+    sender.add_periodic_task(
+        crontab(minute='01', hour='00'),
+        auto_revoke_book.s(),
+        name='revoking books post 7 days'
+    )
+
 
 
 @celery.task
@@ -107,5 +113,23 @@ def send_monthly_report():
 
 
         send_email(user.email, "[eLibrary]User Monthly Report", rendered_template)
+
+    return 200
+
+
+@celery.task
+def auto_revoke_book():
+    all_books = db_session.query(BorrowedBooks).filter(BorrowedBooks.is_returned == False, BorrowedBooks.is_approved == True).all()
+
+    for book in all_books:
+        if book.scheduled_return_date < datetime.date.today():
+            book.is_returned = True
+            book.is_revoked = True
+            book.actual_return_date = datetime.date.today()
+
+            actual_book = db_session.query(Books).filter(Books.id == book.book_id).first()
+            actual_book.available_copies += 1
+
+            db_session.commit()
 
     return 200

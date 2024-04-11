@@ -88,18 +88,19 @@ class Books(Base):
     available_copies = Column(Integer)
     image = Column(String(200), nullable=True)
     is_deleted = Column(Boolean, default = False)
-    # content = Column(String(200))
+    content = Column(String(200))
 
-    def __init__(self, title=None, author=None, section=None, description=None, available_copies=None, image=None):
+    def __init__(self, title=None, author=None, section=None, description=None, available_copies=None, image=None, content=None):
         self.title = title
         self.author = author
         self.section = section
         self.description = description
         self.available_copies = available_copies
         self.image = image
+        self.content = content
 
     def __repr__(self):
-        return f"Book(title='{self.title}', author={self.author}, section={self.section}, description={self.description}, available_copies={self.available_copies}, image={self.image})"
+        return f"Book(title='{self.title}', author={self.author}, section={self.section}, description={self.description}, available_copies={self.available_copies}, image={self.image}, content={self.content}, is_deleted={self.is_deleted})"
     
     def serialize(self):
         return {
@@ -110,8 +111,8 @@ class Books(Base):
             'description': self.description,
             'available_copies': self.available_copies,
             'image': self.image,
-            'is_deleted': self.is_deleted
-            # 'content': self.content
+            'is_deleted': self.is_deleted,
+            'content': self.content
         }
     
     

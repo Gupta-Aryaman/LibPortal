@@ -19,7 +19,7 @@
             <h3>Borrowed</h3>
  
             <div class="mt-2" v-if="borrowed_books.length > 0" v-for="book in borrowed_books" :key="book.id">
-                <MyBooksCard :title="book.title" :author="book.author" :section="book.section" :returnDate="book.scheduled_return_date" :category="'borrowed'" :req_id="book.req_id" @returned="fetchData"/>
+                <MyBooksCard :book_id="book.book_id" :title="book.title" :author="book.author" :section="book.section" :returnDate="book.scheduled_return_date" :category="'borrowed'" :req_id="book.req_id" @returned="fetchData"/>
             </div>  
             <div class="d-flex justify-content-center align-items-center" v-else>
                 <h4>No books found!</h4>
