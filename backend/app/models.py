@@ -9,16 +9,17 @@ class User(Base):
     username = Column(String(50))
     email = Column(String(120), unique=True)
     password = Column(String(128))
+    role = Column(String(50), default='user')
 
-
-    def __init__(self, username=None, email=None, password=None):
+    def __init__(self, username=None, email=None, password=None, role=None):
         self.username = username
         self.email = email
+        self.role = role
         if password:
             self.set_password(password)
 
     def __repr__(self):
-        return f"Person(name='{self.username}', email={self.email})"
+        return f"Person(name='{self.username}', email={self.email}, role={self.role})"
     
     def set_password(self, password):
         """Hashes the password and sets the password_hash attribute."""

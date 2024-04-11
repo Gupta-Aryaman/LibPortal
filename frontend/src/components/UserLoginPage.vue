@@ -1,5 +1,5 @@
 <template>
-    <LoginForm :title="'User Login'" :isLibrarian="false"  @login = "handleChildSubmit"  class="vh-100 d-flex justify-content-center align-items-center"/>
+    <LoginForm :title="'Login'" :isLibrarian="false"  @login = "handleChildSubmit"  class="vh-100 d-flex justify-content-center align-items-center"/>
 </template>
 
 <script>
@@ -16,8 +16,8 @@ export default {
             myHeaders.append("Content-Type", "application/json");
 
             const raw = JSON.stringify({
-            "email": data.email,
-            "password": data.password
+                "email": data.email,
+                "password": data.password
             });
 
             const requestOptions = {
@@ -40,13 +40,21 @@ export default {
                 }
             })
             .then((data) => {
-                if (data) {
+                if (data.role == "user") {
                     localStorage.setItem('user_token', data.token);
                     localStorage.setItem('user', data.user);
 
                     // window.alert('Successful Login!');
                     setTimeout(() => {
                         window.location.href = '/dashboard';
+                    }, 500);
+                } else if (data.role == "librarian"){
+                    localStorage.setItem('user_token', data.token);
+                    localStorage.setItem('user', data.username);
+
+                    // window.alert('Successful Login!');
+                    setTimeout(() => {
+                        window.location.href = '/librarian/dashboard';
                     }, 500);
                 }
             })

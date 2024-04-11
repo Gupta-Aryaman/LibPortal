@@ -14,12 +14,12 @@
                 <form action="#!">
                 <div class="row gy-2 overflow-hidden">
                     <div class="col-12">
-                    <div class="form-floating mb-3" v-if="isLibrarian">
+                    <!-- <div class="form-floating mb-3" v-if="isLibrarian">
                         <input type="username" class="form-control" name="email" id="email" placeholder="" v-model="email" required>
                         <label for="email" class="form-label">Username</label>
-                    </div>
-                    <div class="form-floating mb-3" v-else>
-                        <input type="email" class="form-control" name="email" id="email" placeholder="name@example.com" v-model="email" required>
+                    </div> -->
+                    <div class="form-floating mb-3">
+                        <input type="username" class="form-control" name="email" id="email" placeholder="name@example.com" v-model="email" required>
                         <label for="email" class="form-label">Email</label>
                     </div>
                     </div>
@@ -30,14 +30,14 @@
                     </div>
                     </div>
                     <div class="col-12">
-                    <div class="d-flex gap-2 justify-content-between" v-if="isLibrarian">
+                    <!-- <div class="d-flex gap-2 justify-content-between" v-if="isLibrarian">
                         
                         <a href="/login" class="link-primary text-decoration-none">Login as user?</a>
                     </div>
                     <div class="d-flex gap-2 justify-content-between" v-else>
                         
                         <a href="/librarian/login" class="link-primary text-decoration-none">Login as librarian?</a>
-                    </div>
+                    </div> -->
                     </div>
                     <div class="col-12">
                     <div class="d-grid my-3">

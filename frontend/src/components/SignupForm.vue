@@ -94,10 +94,11 @@
         return capitalLetterRegex.test(this.password) && numberRegex.test(this.password) && this.password.length >= 8;
       },
       isFormValid() {
-        return this.username && this.email && this.password && this.isPasswordValid && this.checkbox;
+        return this.username && this.isEmailValid && this.password && this.isPasswordValid && this.checkbox;
       },
       isEmailValid() {
-        return this.email;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(this.email);
       },
     },
     methods: {

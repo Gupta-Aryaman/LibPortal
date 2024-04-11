@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_caching import Cache
 
 from .extensions import init_db, db_session
-from .models import Librarian
+from .models import User
 from .views import main
 
 from . import workers
@@ -20,8 +20,8 @@ def create_app(config_file='settings.py'):
     init_db()
 
     # Create a librarian user
-    if not Librarian.query.filter_by(username='librarian').first():
-        librarian = Librarian(username='librarian', password='password')
+    if not User.query.filter_by(email='librarian').first():
+        librarian = User(username='librarian', email='librarian', password='password', role="librarian")
         db_session.add(librarian)
         db_session.commit()
 

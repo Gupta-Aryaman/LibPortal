@@ -57,7 +57,7 @@ def signup_user():
 @main.route('/login', methods = ["POST"])
 def login_user():
     '''
-    Login endpoint for a student (user)
+    Login endpoint for a user
     '''
     if request.method == "POST":
         try:
@@ -67,32 +67,31 @@ def login_user():
             fetch_user = db_session.query(User).filter(User.email == email).all()
 
             if fetch_user is not None:
-                # Verify the password
                 if fetch_user[0].check_password(password):
-                    # Password is correct, user is authenticated
                     fetch_user = fetch_user
                 else:
-                    # Password is incorrect
                     return make_response({"Status": "Invalid Credentials"}, 401)
             else:
-                # User with given email not found
                 return make_response({"Status": "Invalid Credentials"}, 401)
 
 
-            # if not fetch_user:
-            #     return make_response({"Status": "Invalid Credentials"}, 401)
+            if fetch_user[0].role == 'librarian':
+                fetch_librarian = fetch_user[0]
+                token = jwt.encode({'username': fetch_librarian.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
 
-            login_log = db_session.query(LoginLogs).filter(LoginLogs.user_id == fetch_user[0].id, LoginLogs.login_date == datetime.date.today()).first()
+                return make_response({"Status": "Librarian login successful", "token": token, "user": fetch_librarian.username, "role": "librarian"}, 200)
+            else:
+                login_log = db_session.query(LoginLogs).filter(LoginLogs.user_id == fetch_user[0].id, LoginLogs.login_date == datetime.date.today()).first()
 
-            if not login_log:
-                l = LoginLogs(fetch_user[0].id)
-                db_session.add(l)
-                db_session.commit()
+                if not login_log:
+                    l = LoginLogs(fetch_user[0].id)
+                    db_session.add(l)
+                    db_session.commit()
 
-            fetch_user = fetch_user[0]
-            token = jwt.encode({'username': fetch_user.username, 'email': fetch_user.email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
+                fetch_user = fetch_user[0]
+                token = jwt.encode({'username': fetch_user.username, 'email': fetch_user.email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
 
-            return make_response({"Status": "User login successful", "token": token, "user": fetch_user.username}, 200)
+                return make_response({"Status": "User login successful", "token": token, "user": fetch_user.username, "role": "user"}, 200)
         
         except Exception as e:
             return make_response({'Error: ': str(e)}, 500)
@@ -397,42 +396,42 @@ def view_book(current_user, book_id):
 #                     #
 #######################
 
-@main.route('/librarian/login', methods = ["POST"])
-def login_librarian():
-    '''
-    Login endpoint for a librarian
-    '''
-    if request.method == "POST":
-        try:
-            username = request.json['username']
-            password = request.json['password']
+# @main.route('/librarian/login', methods = ["POST"])
+# def login_librarian():
+#     '''
+#     Login endpoint for a librarian
+#     '''
+#     if request.method == "POST":
+#         try:
+#             username = request.json['username']
+#             password = request.json['password']
 
-            fetch_librarian = db_session.query(Librarian).filter(Librarian.username == username).all()
+#             fetch_librarian = db_session.query(Librarian).filter(Librarian.username == username).all()
 
-            if fetch_librarian is not None:
-                # Verify the password
-                if len(fetch_librarian) and fetch_librarian[0].check_password(password):
-                    # Password is correct, user is authenticated
-                    fetch_librarian = fetch_librarian
-                else:
-                    # Password is incorrect
-                    return make_response({"Status": "Invalid Credentials"}, 401)
-            else:
-                # User with given email not found
-                return make_response({"Status": "Invalid Credentials"}, 401)
+#             if fetch_librarian is not None:
+#                 # Verify the password
+#                 if len(fetch_librarian) and fetch_librarian[0].check_password(password):
+#                     # Password is correct, user is authenticated
+#                     fetch_librarian = fetch_librarian
+#                 else:
+#                     # Password is incorrect
+#                     return make_response({"Status": "Invalid Credentials"}, 401)
+#             else:
+#                 # User with given email not found
+#                 return make_response({"Status": "Invalid Credentials"}, 401)
 
-            # if not fetch_librarian:
-            #     return make_response({"Status": "Invalid Credentials"}, 401)
+#             # if not fetch_librarian:
+#             #     return make_response({"Status": "Invalid Credentials"}, 401)
 
-            fetch_librarian = fetch_librarian[0]
-            token = jwt.encode({'username': fetch_librarian.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
+#             fetch_librarian = fetch_librarian[0]
+#             token = jwt.encode({'username': fetch_librarian.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, secret_key)
 
-            return make_response({"Status": "Librarian login successful", "token": token, "username": fetch_librarian.username}, 200)
+#             return make_response({"Status": "Librarian login successful", "token": token, "username": fetch_librarian.username}, 200)
         
-        except Exception as e:
-            return make_response({'Error: ': str(e)}, 500)
+#         except Exception as e:
+#             return make_response({'Error: ': str(e)}, 500)
         
-    return make_response({"Status": 'Internal Server Error!'}, 500)
+#     return make_response({"Status": 'Internal Server Error!'}, 500)
 
        
 @main.route('/librarian/add_section', methods = ["POST"])

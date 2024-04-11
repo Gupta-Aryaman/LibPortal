@@ -11,6 +11,7 @@ pyjwt = "*"
 flask-cors = "*"
 redis = "*"
 celery = {extras = ["redis"], version = "*"}
+flask-caching = "*"
 
 [dev-packages]
 
