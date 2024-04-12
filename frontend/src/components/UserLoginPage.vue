@@ -50,7 +50,7 @@ export default {
                     }, 500);
                 } else if (data.role == "librarian"){
                     localStorage.setItem('user_token', data.token);
-                    localStorage.setItem('user', data.username);
+                    localStorage.setItem('user', data.user);
 
                     // window.alert('Successful Login!');
                     setTimeout(() => {

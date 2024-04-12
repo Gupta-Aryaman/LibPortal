@@ -467,24 +467,28 @@ def add_book(current_user):
         available_copies = request.form['available_copies']
         content = request.form['content']
 
-        # Get the uploaded file
-        uploaded_file = request.files['picture']
+        
 
         section = db_session.query(Sections).filter(Sections.section.ilike(section)).first()
         if not section:
             return make_response({"Status": "Section not found"}, 404)
 
-        if uploaded_file:
-            filename = secure_filename(uploaded_file.filename)
-            unique_filename = str(uuid.uuid4()) + '_' + filename
-            upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-            
-            # Save the file to the designated folder
-            uploaded_file.save(upload_path)
 
-            book = Books(title, author, section.id, description, available_copies, image=unique_filename, content=content)
+        try:
+            # Get the uploaded file
+            uploaded_file = request.files['picture']
 
-        else:
+            if uploaded_file:
+                filename = secure_filename(uploaded_file.filename)
+                unique_filename = str(uuid.uuid4()) + '_' + filename
+                upload_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+                
+                # Save the file to the designated folder
+                uploaded_file.save(upload_path)
+
+                book = Books(title, author, section.id, description, available_copies, image=unique_filename, content=content)
+
+        except:
             book = Books(title, author, section.id, description, available_copies, content=content)
 
         db_session.add(book)

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 from flask import request, make_response
 
-from .models import User, Librarian
+from .models import User
 from .extensions import db_session
 
 load_dotenv()
@@ -46,7 +46,7 @@ def librarian_token_required(f):
 
         try:
             data = jwt.decode(token, secret_key, algorithms=['HS256'])
-            current_user = db_session.query(Librarian).filter(Librarian.username == data['username']).first()
+            current_user = db_session.query(User).filter(User.email == data['username'], User.role == 'librarian').first()
         except Exception as e:
             return make_response({'message': str(e)}, 401)
 
@@ -55,7 +55,6 @@ def librarian_token_required(f):
     return decorated
 
 
-import io
 import os, smtplib
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText

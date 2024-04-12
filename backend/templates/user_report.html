@@ -20,7 +20,7 @@
       <div class="row col-md-6 col-lg-8 m-auto mt-3 px-0 d-inline-flex justify-content-center">
         <div class="col-8 text-center d-flex align-items-end  justify-content-center ">
           <mdicon name="basket" class="text-center text-primary mx-2" height="50" width="50" />
-          <span class="text-center mx-2" style="font-size:30px">Butti Grocery Store</span>
+          <span class="text-center mx-2" style="font-size:30px">Aryaman's eLibrary</span>
           <hr>
         </div>
       </div>
@@ -69,10 +69,10 @@
                         <td>{{ book.borrow_date }}</td>
                         {% if book.return_pending_bool == True %}
                         <td>{{ book.return_date }}</td>
-                        <td>Not Returned</td>
+                        <td>Returned</td>
                         {% else %}
                         <td> - </td>
-                        <td>Returned</td>
+                        <td>Not Returned</td>
                         {% endif %}
                     </tr>
                     {% endfor %}

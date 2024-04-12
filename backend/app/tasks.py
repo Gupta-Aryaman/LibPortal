@@ -14,13 +14,13 @@ from .helpers import send_email
 @celery.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
-        crontab(minute='01', hour='00'),
+        crontab(minute='1', hour='0'),
         send_daily_reminder.s(),
         name='sending daily reminder'
     )
 
     sender.add_periodic_task(
-        crontab(minute='0', hour='1', day_of_month='1'),
+        crontab(minute='1', hour='00', day_of_month='*'),
         send_monthly_report.s(),
         name='sending monthly report'
     )
@@ -93,11 +93,11 @@ def send_monthly_report():
         books = []
         pending_return_count = 0
         total_issued_books = len(borrowed_books)
-        serial_number = 0
+        serial_number = 1
 
         for book in borrowed_books:
             books.append({
-                "serial_number": serial_number + 1,
+                "serial_number": serial_number,
                 "title": book.Books.title,
                 "author": book.Books.author,
                 "section": book.Sections.section,
@@ -105,8 +105,8 @@ def send_monthly_report():
                 "return_pending_bool": book.BorrowedBooks.is_returned,
                 "return_date": book.BorrowedBooks.scheduled_return_date.strftime("%d/%m/%Y"),
             })
-            pending_return_count += 1 if book.BorrowedBooks.is_returned else 0
-
+            pending_return_count += 0 if book.BorrowedBooks.is_returned else 1
+            serial_number += 1
 
 
         rendered_template = render_template("user_report.html", user=user.username, books=books, pending_return_count=pending_return_count)

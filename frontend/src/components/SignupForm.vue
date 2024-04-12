@@ -13,7 +13,7 @@
             <div class="row">
               <div class="col-12">
                 <div class="mb-5">
-                  <h2 class="h3">Registration</h2>
+                  <h2 class="h3">eLibrary</h2>
                   <h3 class="fs-6 fw-normal text-secondary m-0">Enter your details to register</h3>
                 </div>
               </div>
